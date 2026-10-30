@@ -1,0 +1,45 @@
+# Long-running deployment: db + api + scheduler worker. SIMULATION ONLY.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aqt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: aqt
+      TZ: Asia/Taipei
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aqt}"]
+      interval: 10s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    build: ./backend
+    env_file: .env
+    environment:
+      AQT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aqt}:${POSTGRES_PASSWORD}@db:5432/aqt
+    command: ["python", "-m", "aqt.cli", "init-db"]
+    depends_on: { db: { condition: service_healthy } }
+
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      AQT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aqt}:${POSTGRES_PASSWORD}@db:5432/aqt
+    command: ["python", "-m", "aqt.cli", "api", "--port", "8000"]
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    restart: unless-stopped
+
+  scheduler:
+    build: ./backend
+    env_file: .env
+    environment:
+      AQT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aqt}:${POSTGRES_PASSWORD}@db:5432/aqt
+    command: ["python", "-m", "aqt.cli", "scheduler"]
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    restart: unless-stopped
+
+volumes:
+  pgdata:
