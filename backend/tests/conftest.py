@@ -59,6 +59,8 @@ class Router:
                 return httpx.Response(status, text="boom")
         for frag, payload in self.override.items():
             if frag in path:
+                if isinstance(payload, bytes):
+                    return httpx.Response(200, content=payload)
                 return httpx.Response(200, json=payload)
         m = self.m
         if path.endswith("/afterTrading/MI_INDEX"):
@@ -71,7 +73,7 @@ class Router:
             body = m.twse_bwibbu(self._d(q, "date", "%Y%m%d"))
         elif path.endswith("/exRight/TWT49U"):
             body = m.twse_twt49u(self._d(q, "startDate", "%Y%m%d"), self._d(q, "endDate", "%Y%m%d"))
-        elif path.endswith("/afterTrading/dailyQ"):
+        elif path.endswith("/afterTrading/otc"):
             body = m.tpex_daily(self._d(q, "date", "%Y/%m/%d"))
         elif path.endswith("/insti/dailyTrade"):
             body = m.tpex_insti(self._d(q, "date", "%Y/%m/%d"))

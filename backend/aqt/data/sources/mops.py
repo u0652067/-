@@ -36,6 +36,16 @@ def _get(row: dict, *keywords: str, exclude: tuple[str, ...] = ()):
     return None
 
 
+def _code_name_period(r: dict):
+    """TWSE files use Chinese keys; TPEx mixes English (SecuritiesCompanyCode, Year, Season, Date)."""
+    code = str(_get(r, "公司代號") or r.get("SecuritiesCompanyCode") or "").strip()
+    name = str(_get(r, "公司名稱") or r.get("CompanyName") or "").strip()
+    y = _get(r, "年度") if _get(r, "年度") is not None else r.get("Year")
+    q = _get(r, "季別") if _get(r, "季別") is not None else r.get("Season")
+    published = _roc_date_or_none(_get(r, "出表日期") or r.get("Date"))
+    return code, name, y, q, published
+
+
 def _roc_ym(s: str) -> date:
     s = str(s).strip()
     return date(int(s[:-2]) + 1911, int(s[-2:]), 1)
@@ -65,7 +75,7 @@ def parse_revenue_openapi(rows: list[dict]) -> ParseResult:
             cum_revenue=to_int(_get(r, "當月累計營收")),
             cum_revenue_last_year=to_int(_get(r, "去年累計營收")),
             cum_yoy_pct=to_decimal(_get(r, "前期比較增減")),
-            published_date=_roc_date_or_none(_get(r, "出表日期")),
+            published_date=_roc_date_or_none(_get(r, "出表日期") or r.get("Date")),
             industry=_get(r, "產業別"),
         ))
     return res
@@ -97,12 +107,11 @@ def parse_revenue_history_html(html: str, year: int, month: int) -> ParseResult:
 def parse_income_openapi(rows: list[dict]) -> ParseResult:
     res = ParseResult()
     for r in rows:
-        code = str(_get(r, "公司代號") or "").strip()
-        y, q = _get(r, "年度"), _get(r, "季別")
-        if not code or y is None or q is None:
+        code, name, y, q, published = _code_name_period(r)
+        if not code or y in (None, "") or q in (None, ""):
             continue
         res.records.append(FinancialRecord(
-            code=code, name=str(_get(r, "公司名稱") or "").strip(),
+            code=code, name=name,
             fiscal_year=int(str(y).strip()) + 1911, fiscal_quarter=int(str(q).strip()),
             revenue=to_int(_get(r, "營業收入", exclude=("營業外",))),
             # prefer "營業毛利（毛損）淨額" (after unrealised inter-company profit) when present
@@ -111,7 +120,7 @@ def parse_income_openapi(rows: list[dict]) -> ParseResult:
             operating_income=to_int(_get(r, "營業利益")),
             net_income=to_int(_get(r, "本期淨利", exclude=("歸屬",))),
             eps=to_decimal(_get(r, "基本每股盈餘")),
-            published_date=_roc_date_or_none(_get(r, "出表日期")),
+            published_date=published,
         ))
     return res
 
@@ -119,16 +128,15 @@ def parse_income_openapi(rows: list[dict]) -> ParseResult:
 def parse_balance_openapi(rows: list[dict]) -> ParseResult:
     res = ParseResult()
     for r in rows:
-        code = str(_get(r, "公司代號") or "").strip()
-        y, q = _get(r, "年度"), _get(r, "季別")
-        if not code or y is None or q is None:
+        code, name, y, q, published = _code_name_period(r)
+        if not code or y in (None, "") or q in (None, ""):
             continue
         res.records.append(FinancialRecord(
-            code=code, name=str(_get(r, "公司名稱") or "").strip(),
+            code=code, name=name,
             fiscal_year=int(str(y).strip()) + 1911, fiscal_quarter=int(str(q).strip()),
             total_assets=to_int(_get(r, "資產總")),
             total_liabilities=to_int(_get(r, "負債總")),
             equity=to_int(_get(r, "權益總", exclude=("歸屬", "非控制"))),
-            published_date=_roc_date_or_none(_get(r, "出表日期")),
+            published_date=published,
         ))
     return res

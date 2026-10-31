@@ -80,7 +80,8 @@ class Fetcher:
                 continue
             if resp.status_code in (403, 407):
                 raise SourceBlockedError(f"{host}: HTTP {resp.status_code}")
-            if resp.status_code == 429 or resp.status_code >= 500:
+            # an unresolved 3xx (TWSE answers 307 intermittently under load) is transient too
+            if resp.status_code == 429 or resp.status_code >= 500 or 300 <= resp.status_code < 400:
                 last_exc = FetchError(f"{host}: HTTP {resp.status_code}")
                 self._sleep(2 ** attempt * 5)
                 continue

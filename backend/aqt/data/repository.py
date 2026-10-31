@@ -51,15 +51,19 @@ def upsert_security_master(session: Session, recs: list[SecurityRecord]) -> int:
     rows = [dict(code=r.code, market=r.market, name=r.name, security_type=r.security_type, isin=r.isin,
                  listed_date=r.listed_date, industry=r.industry, status="ACTIVE", created_at=utcnow(),
                  updated_at=utcnow()) for r in recs]
+    if all(r.isin is None for r in recs):
+        for row in rows:  # registry without ISINs (company list fallback) must not erase known ISINs
+            del row["isin"]
     return _upsert(session, Security, rows, ["code", "market"])
 
 
-def mark_missing_as_delisted(session: Session, market: str, active_codes: set[str], as_of: date) -> int:
+def mark_missing_as_delisted(session: Session, market: str, active_codes: set[str], as_of: date,
+                             types: tuple[str, ...] = ("STOCK", "ETF")) -> int:
     """Securities absent from the current registry are flagged DELISTED (never deleted)."""
     q = select(Security).where(Security.market == market, Security.status == "ACTIVE")
     n = 0
     for sec in session.scalars(q):
-        if sec.code not in active_codes and sec.security_type in ("STOCK", "ETF"):
+        if sec.code not in active_codes and sec.security_type in types:
             sec.status = "DELISTED"
             sec.delisted_date = sec.last_seen_date or as_of
             n += 1

@@ -17,7 +17,7 @@ from sqlalchemy.engine import Engine
 from aqt.data import quality, repository as repo
 from aqt.data.http import Fetcher, FetchError, mark_parsed
 from aqt.data.parsing import parse_any_date
-from aqt.data.sources import isin, mops, tpex, twse
+from aqt.data.sources import companies, isin, mops, tpex, twse
 from aqt.data.universe import build_universe
 from aqt.db import session_scope
 from aqt.indicators.compute import compute_for_dates, recompute_adj_factors
@@ -223,6 +223,24 @@ def backfill(engine: Engine, start: date, end: date, fetcher: Fetcher | None = N
     return summary
 
 
+def _fetch_registry(fetcher: Fetcher, m: str):
+    """ISIN registry first (has ETFs, ISIN codes); company list from the OpenAPI as fallback."""
+    url, params = isin.request(m)
+    try:
+        res = fetcher.get(isin.SOURCE, f"isin_{m.lower()}", url, params)
+        parsed = isin.parse(isin.decode(res.content), m)
+        if len(parsed.records) < 100:
+            raise FetchError(f"only {len(parsed.records)} securities parsed — refusing to update")
+        return isin.SOURCE, f"isin_{m.lower()}", res, parsed, None
+    except Exception as e:
+        primary_error = f"isin: {e}"
+    res = fetcher.get(companies.SOURCE, f"companies_{m.lower()}", companies.URL[m])
+    parsed = companies.parse(res.json(), m)
+    if len(parsed.records) < 100:
+        raise FetchError(f"{primary_error}; company list: only {len(parsed.records)} parsed")
+    return companies.SOURCE, f"companies_{m.lower()}", res, parsed, primary_error
+
+
 def sync_securities(engine: Engine, fetcher: Fetcher | None = None) -> dict:
     own = fetcher is None
     fetcher = fetcher or Fetcher(engine)
@@ -230,22 +248,29 @@ def sync_securities(engine: Engine, fetcher: Fetcher | None = None) -> dict:
     try:
         with job_run(engine, "sync_securities") as job:
             for m in MARKETS:
-                url, params = isin.request(m)
                 try:
-                    res = fetcher.get(isin.SOURCE, f"isin_{m.lower()}", url, params)
-                    parsed = isin.parse(isin.decode(res.content), m)
-                    if len(parsed.records) < 100:
-                        raise FetchError(f"only {len(parsed.records)} securities parsed — refusing to update")
+                    source, tag, res, parsed, primary_error = _fetch_registry(fetcher, m)
                 except Exception as e:
                     record_source(engine, isin.SOURCE, f"isin_{m.lower()}", False, str(e))
                     job.partial(f"{m}: {e}")
                     continue
+                if primary_error:
+                    record_source(engine, isin.SOURCE, f"isin_{m.lower()}", False, primary_error)
+                    job.partial(f"{m}: {primary_error} — used company list fallback")
+                codes = {r.code for r in parsed.records}
                 with session_scope(engine) as s:
                     n = repo.upsert_security_master(s, parsed.records)
-                    gone = repo.mark_missing_as_delisted(s, m, {r.code for r in parsed.records}, date.today())
+                    if source == companies.SOURCE:
+                        # the company list only covers common-stock issuers: only plain stock codes
+                        # can be judged delisted from it
+                        known = repo.security_id_map(s, m)
+                        codes |= {c for c, _ in known if twse.classify_code(c) != "STOCK"}
+                        gone = repo.mark_missing_as_delisted(s, m, codes, date.today(), types=("STOCK",))
+                    else:
+                        gone = repo.mark_missing_as_delisted(s, m, codes, date.today())
                 mark_parsed(engine, res.raw_id, "OK")
-                record_source(engine, isin.SOURCE, f"isin_{m.lower()}", True, data_date=date.today())
-                out[m] = {"upserted": n, "marked_delisted": gone}
+                record_source(engine, source, tag, True, data_date=date.today())
+                out[m] = {"source": source, "upserted": n, "marked_delisted": gone}
             job.result.update(out)
     finally:
         if own:

@@ -141,7 +141,7 @@ def test_quote_failure_enters_safe_mode_then_recovers(engine, fetcher, router, s
 
 def test_payload_for_wrong_date_is_rejected(engine, fetcher, router, synthetic_market):
     d0, d1 = synthetic_market.dates[0], synthetic_market.dates[1]
-    router.override["/afterTrading/dailyQ"] = synthetic_market.tpex_daily(d0)  # stale page served for d1
+    router.override["/afterTrading/otc"] = synthetic_market.tpex_daily(d0)  # stale page served for d1
     pipeline.run_daily_update(engine, d1, fetcher)
     with session_scope(engine) as s:
         n = _count(s, DailyPrice, DailyPrice.trade_date == d1)

@@ -36,7 +36,8 @@ def _is_stock_code(code: str) -> bool:
 
 # ---------------------------------------------------------------- daily quotes
 def daily_quotes_request(d: date) -> tuple[str, dict]:
-    return f"{BASE}/afterTrading/dailyQ", {"date": _slash(d), "type": "EW", "response": "json"}
+    # 上櫃股票每日收盤行情 (all securities except warrants); `dailyQ` now redirects to /errors
+    return f"{BASE}/afterTrading/otc", {"date": _slash(d), "type": "EW", "response": "json"}
 
 
 # legacy aaData positions

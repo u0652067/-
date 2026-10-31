@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from aqt.data.http import Fetcher
 from aqt.data.pit import TPE
-from aqt.data.sources import isin, mops, tpex, twse, twse_mis
+from aqt.data.sources import companies, isin, mops, tpex, twse, twse_mis
 
 
 def _recent_weekday():
@@ -35,10 +35,16 @@ def check_sources() -> dict:
         ("twse_holidays", lambda: twse.parse_holidays(f.get("t", "t", *twse.holidays_request(d.year)).json())),
         ("isin_twse", lambda: isin.parse(isin.decode(f.get("t", "t", *isin.request("TWSE")).content), "TWSE")),
         ("isin_tpex", lambda: isin.parse(isin.decode(f.get("t", "t", *isin.request("TPEX")).content), "TPEX")),
+        ("companies_twse", lambda: companies.parse(f.get("t", "t", companies.URL["TWSE"]).json(), "TWSE")),
+        ("companies_tpex", lambda: companies.parse(f.get("t", "t", companies.URL["TPEX"]).json(), "TPEX")),
         ("revenue_twse", lambda: mops.parse_revenue_openapi(f.get("t", "t", mops.REVENUE_URL["TWSE"]).json())),
         ("revenue_tpex", lambda: mops.parse_revenue_openapi(f.get("t", "t", mops.REVENUE_URL["TPEX"]).json())),
         ("income_twse", lambda: mops.parse_income_openapi(f.get("t", "t", mops.INCOME_URL["TWSE"]).json())),
+        ("income_tpex", lambda: mops.parse_income_openapi(f.get("t", "t", mops.INCOME_URL["TPEX"]).json())),
         ("balance_twse", lambda: mops.parse_balance_openapi(f.get("t", "t", mops.BALANCE_URL["TWSE"]).json())),
+        ("balance_tpex", lambda: mops.parse_balance_openapi(f.get("t", "t", mops.BALANCE_URL["TPEX"]).json())),
+        ("revenue_history_twse", lambda: mops.parse_revenue_history_html(
+            isin.decode(f.get("t", "t", mops.historical_revenue_url("TWSE", d.year - 1, 12)).content), d.year - 1, 12)),
         ("mis_intraday", lambda: twse_mis.parse(f.get("t", "t", *twse_mis.request([("2330", "TWSE")])).json())),
     ]
     try:
