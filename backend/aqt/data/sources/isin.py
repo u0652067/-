@@ -36,7 +36,14 @@ def _type_from(section: str, cfi: str) -> str:
     return "OTHER"
 
 
+class RegistryBlocked(ValueError):
+    pass
+
+
 def parse(html: str, market: str) -> ParseResult:
+    if "FOR SECURITY REASONS" in html:
+        # the registry's firewall refuses some hosts with a 200 + this notice page
+        raise RegistryBlocked("isin.twse.com.tw refused the request (security notice page)")
     res = ParseResult()
     section = ""
     for row in _ROW.findall(html):

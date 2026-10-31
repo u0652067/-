@@ -17,12 +17,14 @@ from sqlalchemy.engine import Engine
 from aqt.data import quality, repository as repo
 from aqt.data.http import Fetcher, FetchError, mark_parsed
 from aqt.data.parsing import parse_any_date
-from aqt.data.sources import isin, mops, tpex, twse
+from aqt.data.sources import companies, isin, mops, tpex, twse
 from aqt.data.universe import build_universe
 from aqt.db import session_scope
 from aqt.indicators.compute import compute_for_dates, recompute_adj_factors
 from aqt.jobs.runtime import enter_safe_mode, exit_safe_mode, job_run, record_source
-from aqt.models import CorporateAction
+from aqt.models import (
+    CorporateAction, DailyPrice, InstitutionalTrade, MarginTrade, Security, TradingCalendar, Valuation,
+)
 
 log = logging.getLogger(__name__)
 MARKETS = ("TWSE", "TPEX")
@@ -111,9 +113,28 @@ def ingest_corporate_actions(engine: Engine, fetcher: Fetcher, start: date, end:
     return n
 
 
+_DATASET_MODEL = {"quotes": DailyPrice, "institutional": InstitutionalTrade, "margin": MarginTrade,
+                  "valuation": Valuation}
+
+
+def _stored(engine: Engine, market: str, dataset: str, d: date) -> bool:
+    model = _DATASET_MODEL[dataset]
+    with session_scope(engine) as s:
+        return s.scalar(select(model.security_id).join(Security, Security.id == model.security_id)
+                        .where(model.trade_date == d, Security.market == market).limit(1)) is not None
+
+
+def _known_closed(engine: Engine, market: str, d: date) -> bool:
+    with session_scope(engine) as s:
+        return s.scalar(select(TradingCalendar.is_trading_day).where(
+            TradingCalendar.market == market, TradingCalendar.cal_date == d)) is False
+
+
 def run_daily_update(engine: Engine, d: date, fetcher: Fetcher | None = None,
                      compute_indicators: bool = True, manage_safe_mode: bool = True,
-                     corporate_actions: bool = True) -> dict:
+                     corporate_actions: bool = True, only_missing: bool = False) -> dict:
+    """only_missing: skip datasets already stored for (market, d) — used to resume a backfill
+    after the source refused some requests."""
     own = fetcher is None
     fetcher = fetcher or Fetcher(engine)
     try:
@@ -130,6 +151,12 @@ def run_daily_update(engine: Engine, d: date, fetcher: Fetcher | None = None,
 
             trading_markets, quote_failures = [], []
             for m in MARKETS:
+                if only_missing and _stored(engine, m, "quotes", d):
+                    trading_markets.append(m)
+                    r[f"{m}_quotes"] = "stored"
+                    continue
+                if only_missing and _known_closed(engine, m, d):
+                    continue
                 try:
                     out = ingest_daily(engine, fetcher, m, "quotes", d)
                     r[f"{m}_quotes"] = out
@@ -138,6 +165,7 @@ def run_daily_update(engine: Engine, d: date, fetcher: Fetcher | None = None,
                 except Exception as e:
                     quote_failures.append(f"{m}: {e}")
                     job.partial(f"{m} quotes: {e}")
+                    r.setdefault("missing", []).append(f"{m}_quotes")
 
             if not trading_markets and not quote_failures:
                 job.status, r["skipped"] = "SKIPPED", "not a trading day"
@@ -145,10 +173,14 @@ def run_daily_update(engine: Engine, d: date, fetcher: Fetcher | None = None,
 
             for m in trading_markets:
                 for ds in SECONDARY:
+                    if only_missing and _stored(engine, m, ds, d):
+                        r[f"{m}_{ds}"] = "stored"
+                        continue
                     try:
                         r[f"{m}_{ds}"] = ingest_daily(engine, fetcher, m, ds, d)
                     except Exception as e:
                         job.partial(f"{m} {ds}: {e}")
+                        r.setdefault("missing", []).append(f"{m}_{ds}")
 
             issues = []
             with session_scope(engine) as s:
@@ -182,31 +214,34 @@ def run_daily_update(engine: Engine, d: date, fetcher: Fetcher | None = None,
             fetcher.close()
 
 
-def backfill(engine: Engine, start: date, end: date, fetcher: Fetcher | None = None) -> dict:
+def backfill(engine: Engine, start: date, end: date, fetcher: Fetcher | None = None,
+             only_missing: bool = False) -> dict:
     """Date-by-date backfill. Iterating dates (not today's stock list) means stocks that were later
     delisted are captured too — the core survivorship-bias guard."""
     own = fetcher is None
     fetcher = fetcher or Fetcher(engine)
-    summary = {"days": 0, "trading_days": 0, "failed": []}
+    summary = {"days": 0, "trading_days": 0, "failed": [], "missing": {}}
     try:
-        try:
-            # TWT49U accepts a range; chunk by ~90 days
-            s0 = start
-            while s0 <= end:
-                e0 = min(end, s0 + timedelta(days=90))
+        # TWT49U accepts a range; chunk by ~90 days, a refused chunk does not stop the others
+        s0 = start
+        while s0 <= end:
+            e0 = min(end, s0 + timedelta(days=90))
+            try:
                 ingest_corporate_actions(engine, fetcher, s0, e0)
-                s0 = e0 + timedelta(days=1)
-        except Exception as e:
-            summary["failed"].append(f"corporate_actions: {e}")
+            except Exception as e:
+                summary["failed"].append(f"corporate_actions {s0}..{e0}: {e}")
+            s0 = e0 + timedelta(days=1)
         d = start
         while d <= end:
             if d.weekday() < 5:
                 summary["days"] += 1
                 try:
                     r = run_daily_update(engine, d, fetcher, compute_indicators=False, manage_safe_mode=False,
-                                         corporate_actions=False)
+                                         corporate_actions=False, only_missing=only_missing)
                     if not r.get("skipped"):
                         summary["trading_days"] += 1
+                    for ds in r.get("missing", []):
+                        summary["missing"][ds] = summary["missing"].get(ds, 0) + 1
                 except Exception as e:
                     summary["failed"].append(f"{d}: {e}")
             d += timedelta(days=1)
@@ -223,6 +258,24 @@ def backfill(engine: Engine, start: date, end: date, fetcher: Fetcher | None = N
     return summary
 
 
+def _fetch_registry(fetcher: Fetcher, m: str):
+    """ISIN registry first (has ETFs, ISIN codes); company list from the OpenAPI as fallback."""
+    url, params = isin.request(m)
+    try:
+        res = fetcher.get(isin.SOURCE, f"isin_{m.lower()}", url, params)
+        parsed = isin.parse(isin.decode(res.content), m)
+        if len(parsed.records) < 100:
+            raise FetchError(f"only {len(parsed.records)} securities parsed — refusing to update")
+        return isin.SOURCE, f"isin_{m.lower()}", res, parsed, None
+    except Exception as e:
+        primary_error = f"isin: {e}"
+    res = fetcher.get(companies.SOURCE, f"companies_{m.lower()}", companies.URL[m])
+    parsed = companies.parse(res.json(), m)
+    if len(parsed.records) < 100:
+        raise FetchError(f"{primary_error}; company list: only {len(parsed.records)} parsed")
+    return companies.SOURCE, f"companies_{m.lower()}", res, parsed, primary_error
+
+
 def sync_securities(engine: Engine, fetcher: Fetcher | None = None) -> dict:
     own = fetcher is None
     fetcher = fetcher or Fetcher(engine)
@@ -230,22 +283,29 @@ def sync_securities(engine: Engine, fetcher: Fetcher | None = None) -> dict:
     try:
         with job_run(engine, "sync_securities") as job:
             for m in MARKETS:
-                url, params = isin.request(m)
                 try:
-                    res = fetcher.get(isin.SOURCE, f"isin_{m.lower()}", url, params)
-                    parsed = isin.parse(isin.decode(res.content), m)
-                    if len(parsed.records) < 100:
-                        raise FetchError(f"only {len(parsed.records)} securities parsed — refusing to update")
+                    source, tag, res, parsed, primary_error = _fetch_registry(fetcher, m)
                 except Exception as e:
                     record_source(engine, isin.SOURCE, f"isin_{m.lower()}", False, str(e))
                     job.partial(f"{m}: {e}")
                     continue
+                if primary_error:
+                    record_source(engine, isin.SOURCE, f"isin_{m.lower()}", False, primary_error)
+                    job.partial(f"{m}: {primary_error} — used company list fallback")
+                codes = {r.code for r in parsed.records}
                 with session_scope(engine) as s:
                     n = repo.upsert_security_master(s, parsed.records)
-                    gone = repo.mark_missing_as_delisted(s, m, {r.code for r in parsed.records}, date.today())
+                    if source == companies.SOURCE:
+                        # the company list only covers common-stock issuers: only plain stock codes
+                        # can be judged delisted from it
+                        known = repo.security_id_map(s, m)
+                        codes |= {c for c, _ in known if twse.classify_code(c) != "STOCK"}
+                        gone = repo.mark_missing_as_delisted(s, m, codes, date.today(), types=("STOCK",))
+                    else:
+                        gone = repo.mark_missing_as_delisted(s, m, codes, date.today())
                 mark_parsed(engine, res.raw_id, "OK")
-                record_source(engine, isin.SOURCE, f"isin_{m.lower()}", True, data_date=date.today())
-                out[m] = {"upserted": n, "marked_delisted": gone}
+                record_source(engine, source, tag, True, data_date=date.today())
+                out[m] = {"source": source, "upserted": n, "marked_delisted": gone}
             job.result.update(out)
     finally:
         if own:

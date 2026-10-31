@@ -80,7 +80,11 @@ class Fetcher:
                 continue
             if resp.status_code in (403, 407):
                 raise SourceBlockedError(f"{host}: HTTP {resp.status_code}")
-            if resp.status_code == 429 or resp.status_code >= 500:
+            if b"FOR SECURITY REASONS" in resp.content[:2000]:
+                # TWSE firewall notice (served as 307 or 200) after too many requests: back off, don't hammer
+                raise SourceBlockedError(f"{host}: security notice page (rate limited / refused)")
+            # an unresolved 3xx without the notice page is treated as transient
+            if resp.status_code == 429 or resp.status_code >= 500 or 300 <= resp.status_code < 400:
                 last_exc = FetchError(f"{host}: HTTP {resp.status_code}")
                 self._sleep(2 ** attempt * 5)
                 continue

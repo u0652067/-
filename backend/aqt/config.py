@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # HTTP behaviour toward public data sources (be polite: TWSE bans aggressive scrapers)
     http_timeout_seconds: float = 30.0
-    http_min_interval_seconds: float = 3.0  # min gap between requests to the same host
+    http_min_interval_seconds: float = 5.0  # min gap between requests to the same host
     http_max_retries: int = 3
     http_user_agent: str = "ai-quant-trader/0.1 (research; simulation only)"
 
