@@ -21,6 +21,7 @@ def main(argv=None) -> None:
     b = sub.add_parser("backfill", help="date-by-date historical backfill")
     b.add_argument("--start", type=_d, required=True)
     b.add_argument("--end", type=_d, required=True)
+    b.add_argument("--only-missing", action="store_true", help="skip datasets already stored (resume)")
     sub.add_parser("sync-securities")
     c = sub.add_parser("sync-calendar")
     c.add_argument("--year", type=int, default=datetime.now(TPE).year)
@@ -57,7 +58,7 @@ def main(argv=None) -> None:
     if args.cmd == "update-daily":
         out = pipeline.run_daily_update(engine, args.date or datetime.now(TPE).date())
     elif args.cmd == "backfill":
-        out = pipeline.backfill(engine, args.start, args.end)
+        out = pipeline.backfill(engine, args.start, args.end, only_missing=args.only_missing)
     elif args.cmd == "sync-securities":
         out = pipeline.sync_securities(engine)
     elif args.cmd == "sync-calendar":

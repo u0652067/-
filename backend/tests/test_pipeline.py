@@ -189,3 +189,18 @@ def test_delisted_stock_kept_in_history(engine, fetcher, router, synthetic_marke
         sec = s.scalar(select(Security).where(Security.code == "2603"))
         assert sec.first_seen_date == m.dates[0] and sec.last_seen_date == m.dates[0]
         assert _count(s, DailyPrice, DailyPrice.security_id == sec.id) == 1
+
+
+def test_backfill_resume_only_fetches_missing(engine, fetcher, router, synthetic_market):
+    d0, d1 = synthetic_market.dates[0], synthetic_market.dates[1]
+    router.fail["/fund/T86"] = 403  # source refuses institutional data
+    out = pipeline.backfill(engine, d0, d1, fetcher)
+    assert out["missing"] == {"TWSE_institutional": 2}
+    del router.fail["/fund/T86"]
+    router.calls.clear()
+    out = pipeline.backfill(engine, d0, d1, fetcher, only_missing=True)
+    assert out["missing"] == {} and out["trading_days"] == 2
+    fetched = {c.split("?")[0].rsplit("/", 1)[-1] for c in router.calls}
+    assert fetched == {"T86", "TWT49U"}
+    with session_scope(engine) as s:
+        assert _count(s, InstitutionalTrade, InstitutionalTrade.trade_date == d1) > 0

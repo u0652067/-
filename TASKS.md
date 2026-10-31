@@ -1,11 +1,11 @@
 # TASKS（進度追蹤 — 每次收工更新）
 
-最後更新：2026-10-31｜目前階段：**PHASE 1 真實來源驗收完成，歷史回補進行中**｜測試：87 passed
+最後更新：2026-10-31｜目前階段：**PHASE 1 真實來源驗收完成，歷史回補進行中**｜測試：88 passed
 
 ## ▶ 下一步（依序）
 1. [x] 雲端環境開放交易所網域、GitHub App 安裝（2026-10-31）。
 2. [x] `check-sources`：每日行情/法人/融資券/本益比（上市+上櫃）、除權息、休市日、公司清單、月營收、財報（上市+上櫃）全部 ok，並逐欄比對真實值（`tests/test_real_payloads.py`）。
-3. [~] `backfill --start 2019-01-01`：已在雲端 session 啟動（逐年，約 26 秒/交易日，約 14 小時）。**雲端容器是暫時的，資料庫不會保留** → 正式資料要在長期主機（VPS）重跑回補。
+3. [~] `backfill --start 2019-01-01 --only-missing`：已在雲端 session 啟動（逐年）。**TWSE 防火牆會對雲端 IP 間歇性回「FOR SECURITY REASONS」（307）**，T86/MI_MARGN/TWT49U 的歷史日期特別常被擋，MI_INDEX 與 TPEx 全部正常。被擋的資料集會記在 `missing`，之後用 `--only-missing` 重跑補齊。**雲端容器是暫時的，資料庫不會保留** → 正式資料要在長期主機（最好是台灣 IP）重跑回補；若仍被擋，備援是 FinMind（需 token）。
 4. [ ] `mopsov.twse.com.tw` 仍被網路政策擋（proxy 403）→ 歷史月營收回補（`backfill-revenue`）無法驗證。請在環境 Allowed domains 確認這個網域。
 5. [ ] 決定長期部署主機（PHASE 7 前必須；排程需要常駐）。
 6. [ ] 開始 PHASE 2（見下方）。
@@ -68,6 +68,7 @@
 
 ## 已知問題 / 決策紀錄
 - 2026-10-30：開發用雲端環境無法連到 twse/tpex（proxy 403）。決策：先以「官方格式」合成資料離線測試整條流程，真實驗收移到可連線主機。
+- 2026-10-31：連續請求太快（含兩個回補程序同時跑）後，TWSE T86 等端點約 10 分鐘全部回安全警示頁。決策：節流預設 3→5 秒、安全警示頁視為 `SourceBlockedError`（不重試、不硬打）、回補加 `--only-missing` 續傳。
 - 2026-10-31（下午）：網域開放後驗收。`volume_without_close` 在真實資料出現（如 1538 只有盤後定價成交、收盤為 --），維持 ERROR＝當日不可交易，屬正確行為。2063 世鎧 10/28 漲跌超過 10%，推測為上櫃除權息（TPEx 除權息尚未接）。
 - 2026-10-31（上午）：新雲端環境仍封鎖 www.twse.com.tw、www.tpex.org.tw、isin.twse.com.tw、openapi.twse.com.tw、mopsov.twse.com.tw、mis.twse.com.tw（proxy 403，WebFetch 亦無法解析）。基準測試 75 passed。需在環境 Network access 的 Allowed domains 加入上述 6 個網域才能做真實驗收；GitHub push 403，需安裝 Claude GitHub App。
 - 2026-10-30：選 APScheduler 而非 Celery：單機、無 Redis、狀態在 PostgreSQL 足以重啟恢復。
