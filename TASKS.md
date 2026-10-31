@@ -63,5 +63,6 @@
 
 ## 已知問題 / 決策紀錄
 - 2026-10-30：開發用雲端環境無法連到 twse/tpex（proxy 403）。決策：先以「官方格式」合成資料離線測試整條流程，真實驗收移到可連線主機。
+- 2026-10-31：新雲端環境仍封鎖 www.twse.com.tw、www.tpex.org.tw、isin.twse.com.tw、openapi.twse.com.tw、mopsov.twse.com.tw、mis.twse.com.tw（proxy 403，WebFetch 亦無法解析）。基準測試 75 passed。需在環境 Network access 的 Allowed domains 加入上述 6 個網域才能做真實驗收；GitHub push 403，需安裝 Claude GitHub App。
 - 2026-10-30：選 APScheduler 而非 Celery：單機、無 Redis、狀態在 PostgreSQL 足以重啟恢復。
 - 2026-10-30：KD 採台灣慣用 1/3 平滑、起始 50；MACD 用收盤價（非 DI 價）。
