@@ -6,7 +6,7 @@
 1. [x] 雲端環境開放交易所網域、GitHub App 安裝（2026-10-31）。
 2. [x] `check-sources`：每日行情/法人/融資券/本益比（上市+上櫃）、除權息、休市日、公司清單、月營收、財報（上市+上櫃）全部 ok，並逐欄比對真實值（`tests/test_real_payloads.py`）。
 3. [~] `backfill --start 2019-01-01 --only-missing`：已在雲端 session 啟動（逐年）。**TWSE 防火牆會對雲端 IP 間歇性回「FOR SECURITY REASONS」（307）**，T86/MI_MARGN/TWT49U 的歷史日期特別常被擋，MI_INDEX 與 TPEx 全部正常。被擋的資料集會記在 `missing`，之後用 `--only-missing` 重跑補齊。**雲端容器是暫時的，資料庫不會保留** → 正式資料要在長期主機（最好是台灣 IP）重跑回補；若仍被擋，備援是 FinMind（需 token）。
-4. [ ] `mopsov.twse.com.tw` 仍被網路政策擋（proxy 403）→ 歷史月營收回補（`backfill-revenue`）無法驗證。請在環境 Allowed domains 確認這個網域。
+4. [ ] `mopsov.twse.com.tw`：網路政策已放行（2026-10-31），但網站本身對雲端 IP 回「FOR SECURITY REASONS」（307）→ 歷史月營收回補要在長期主機（台灣 IP）驗證，或改用 FinMind。
 5. [ ] 決定長期部署主機（PHASE 7 前必須；排程需要常駐）。
 6. [ ] 開始 PHASE 2（見下方）。
 
