@@ -3,6 +3,7 @@ import gzip
 import hashlib
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -99,16 +100,33 @@ class Fetcher:
     def _archive(self, source, dataset, url, params, data_date, status, content, fetched_at) -> int | None:
         if not self.archive or self.engine is None:
             return None
+        sha, gz = hashlib.sha256(content).hexdigest(), gzip.compress(content)
         with session_scope(self.engine) as s:
             row = RawPayload(source=source, dataset=dataset, url=url, params=params, data_date=data_date,
-                             fetched_at=fetched_at, http_status=status,
-                             sha256=hashlib.sha256(content).hexdigest(), content_gz=gzip.compress(content))
+                             fetched_at=fetched_at, http_status=status, sha256=sha, content_gz=gz)
             s.add(row)
             s.flush()
-            return row.id
+            raw_id = row.id
+        if self.settings.raw_archive_dir:
+            _mirror_to_disk(self.settings.raw_archive_dir, raw_id, source, dataset, data_date, fetched_at, sha, gz)
+        return raw_id
 
     def close(self) -> None:
         self.client.close()
+
+
+def _mirror_to_disk(root, raw_id, source, dataset, data_date, fetched_at, sha256, content_gz) -> None:
+    """Second copy of the raw response outside the database (survives a DB restore to an older dump).
+    A disk problem must never fail ingestion: the database copy is authoritative."""
+    d = data_date or fetched_at.date()
+    path = os.path.join(root, source, dataset, f"{d:%Y}")
+    try:
+        os.makedirs(path, exist_ok=True)
+        name = f"{d:%Y%m%d}_{fetched_at:%Y%m%dT%H%M%SZ}_{raw_id}_{sha256[:12]}.gz"
+        with open(os.path.join(path, name), "wb") as fh:
+            fh.write(content_gz)
+    except OSError as e:
+        log.warning("raw mirror write failed (%s): %s", path, e)
 
 
 def mark_parsed(engine: Engine, raw_id: int | None, status: str, error: str | None = None) -> None:

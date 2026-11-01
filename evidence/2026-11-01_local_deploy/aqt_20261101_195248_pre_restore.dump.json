@@ -1,0 +1,21 @@
+﻿{
+    "file":  "aqt_20261101_195248_pre_restore.dump",
+    "created_at":  "2026-11-01T19:52:50.9928245+08:00",
+    "bytes":  4788969,
+    "sha256":  "38ff2d2a25b25f52ba878bf6eb0db6a53ed9c8e065c054be3401ae7e5b19a5e1",
+    "row_counts":  {
+                       "raw_payloads":  53,
+                       "trading_calendar":  14,
+                       "job_runs":  8,
+                       "corporate_actions":  9,
+                       "monthly_revenues":  0,
+                       "market_indices":  1335,
+                       "valuations":  9895,
+                       "technical_indicators":  11819,
+                       "margin_trades":  11111,
+                       "institutional_trades":  11220,
+                       "daily_prices":  12024,
+                       "securities":  54842
+                   },
+    "verified_restore":  null
+}

@@ -1,14 +1,35 @@
 # TASKS（進度追蹤 — 每次收工更新）
 
-最後更新：2026-10-31｜目前階段：**PHASE 1 真實來源驗收完成，歷史回補進行中**｜測試：88 passed
+最後更新：2026-11-01｜目前階段：**PHASE 1 條件式驗收（等待使用者驗收；未進入 PHASE 2）**｜測試：97 passed（本機 Docker）
+
+## PHASE 1 條件式驗收 — 狀態說明
+「條件式」= 程式與部署流程完成、真實來源在本機（台灣家用 IP）驗證可用，但下列資料缺口尚未補齊或尚無官方來源。缺口補齊並經使用者驗收前，**不得進入 PHASE 2**。
+
+### 尚未解決的資料缺口
+| # | 缺口 | 影響 | 目前處理 |
+|---|---|---|---|
+| G1 | 2019 起全量回補尚未在正式（本機）資料庫完成 | 回測樣本不完整 | `backfill.ps1 start` 可續傳執行；完成後以 `integrity-check` 報告驗收 |
+| ~~G2~~ | ~~本機尚未安裝 Docker Desktop / WSL2 / Git~~ | — | ✅ 2026-11-01 已安裝（Docker 4.97 / Engine 29.9.2、Git 2.56），部署已啟動 |
+| G3 | 過去年度休市日：TWSE 只提供當年度 | 過去年度以「實際有無行情」推斷 | 已實作；`integrity-check` 列出未解析的平日 |
+| G4 | TPEx 除權息（只有 TWSE TWT49U） | 上櫃股票還原權值錯誤（例：2063 世鎧 10/28） | 未處理 |
+| G5 | TPEx 指數（櫃買指數） | 上櫃大盤狀態無資料 | 未處理 |
+| G6 | 處置股／全額交割股／暫停交易名單 | 股票池無法排除這些股票 | 未處理 |
+| G7 | 歷史財報（只有 OpenAPI 最新一季）與實際公布日 | 財報因子無歷史 | 未處理（MOPS 歷史查詢或 FinMind） |
+| G8 | 減資、分割、面額變更還原（TWTAVU 等） | 部分股票還原價錯誤 | 未處理 |
+| G9 | 下市日期官方來源 | 以「最後出現日」推定 | 未處理 |
+| G10 | 歷史月營收無實際公布日 | `available_at` 用法定期限（次月 10 日）推定 | 規則已實作；屬保守估計 |
+| G11 | TWSE MIS 盤中延遲快照 | 未接排程、未宣稱即時 | PHASE 3 一起做 |
+| G12 | FinMind 備援 adapter | 官方來源被擋時無備援 | 未處理；本機 IP 目前不需要 |
 
 ## ▶ 下一步（依序）
 1. [x] 雲端環境開放交易所網域、GitHub App 安裝（2026-10-31）。
 2. [x] `check-sources`：每日行情/法人/融資券/本益比（上市+上櫃）、除權息、休市日、公司清單、月營收、財報（上市+上櫃）全部 ok，並逐欄比對真實值（`tests/test_real_payloads.py`）。
-3. [~] `backfill --start 2019-01-01 --only-missing`：已在雲端 session 啟動（逐年）。**TWSE 防火牆會對雲端 IP 間歇性回「FOR SECURITY REASONS」（307）**，T86/MI_MARGN/TWT49U 的歷史日期特別常被擋，MI_INDEX 與 TPEx 全部正常。被擋的資料集會記在 `missing`，之後用 `--only-missing` 重跑補齊。**雲端容器是暫時的，資料庫不會保留** → 正式資料要在長期主機（最好是台灣 IP）重跑回補；若仍被擋，備援是 FinMind（需 token）。
-4. [ ] `mopsov.twse.com.tw`：網路政策已放行（2026-10-31），但網站本身對雲端 IP 回「FOR SECURITY REASONS」（307）→ 歷史月營收回補要在長期主機（台灣 IP）驗證，或改用 FinMind。
-5. [ ] 決定長期部署主機（PHASE 7 前必須；排程需要常駐）。
-6. [ ] 開始 PHASE 2（見下方）。
+3. [x] 決定長期部署主機：**使用者自己的 Windows 電腦（台灣家用 IP）**，Docker Desktop 常駐（2026-10-31）。雲端資料庫只是暫存，不是正式資料。
+4. [x] 本機持久化部署流程：`docker-compose.yml`（external volume `aqt_pgdata` + `data/raw`、`data/logs`、`data/reports`、`backups` 綁定）、`scripts/*.ps1`（啟動、停止、備份、還原、健康檢查、回補、測試）、README。
+5. [x] 家用 IP 重新驗證 MOPS 歷史月營收（2026-10-31 13:57 台北）：上市/上櫃 2019-01、2021-06、2024-12、2026-09 共 8 頁全部 HTTP 200、無安全警示頁，解析 748～997 筆；原始頁與 sha256 在 `evidence/2026-10-31_home_ip/`。同時 TWSE T86 / MI_MARGN 2019-01-02、ISIN 一覽表、OpenAPI 皆可連線（雲端 IP 被擋的端點在本機都正常）。
+6. [x] 2026-11-01：`start.ps1` → `test.ps1`（97 passed）→ `health.ps1`（28/28 OK）→ 容器重建驗證 → `backup.ps1 -Verify` / `restore.ps1` → smoke 回補（2019-01-02～01-11 完整）→ `backfill.ps1 start`（20:00 台北啟動，先做 pre_backfill 驗證備份與完整性基準）。
+7. [ ] 全量回補完成後（預估約 16 小時）`backfill.ps1 report`，依報告補齊缺漏，交使用者驗收。
+8. [ ] 使用者驗收 PHASE 1 後才開始 PHASE 2。
 
 ## PHASE 0 — 架構與規劃 ✅
 - [x] 環境檢查（Python 3.13、Node 22、PostgreSQL 16、Docker CLI；無 Docker daemon；交易所網域被網路政策封鎖）
@@ -17,7 +38,7 @@
 - [x] 完整資料庫設計（41 張表，涵蓋 PHASE 1–7）+ `docs/DATABASE.md`
 - [x] 稽核觸發器（只能新增、雜湊鏈、策略版本不可改、模擬限定 CHECK）
 
-## PHASE 1 — 台股資料中心 🟡
+## PHASE 1 — 台股資料中心 🟡 條件式驗收
 - [x] 證券主檔：ISIN 一覽表（上市/上櫃，Big5）、下市標記（不刪除）、回補中遇到的已下市代號自動建檔
 - [x] 歷史行情：TWSE MI_INDEX（新舊兩種格式）、TPEx dailyQ（新站 tables + 舊站 aaData）
 - [x] 指數：加權指數與類股指數（TWSE）
@@ -41,7 +62,11 @@
 - [x] 唯讀 API：health、sources、coverage、quality、jobs、notifications、stocks、prices、indicators、institutional
 - [x] CLI、Dockerfile、docker-compose
 - [x] 真實來源驗收（2026-10-31）：修正 TPEx 行情網址（`dailyQ`→`otc`）、TPEx 財報英文欄位、ISIN 安全警示頁偵測 + OpenAPI 公司清單備援、未解決 3xx 重試；真實回應精簡後放 `tests/fixtures/real/`
-- [ ] ISIN 一覽表（雲端 IP 被擋）：目前用公司清單備援，ETF/特別股只由行情自動建檔、沒有 ISIN 碼
+- [x] 本機部署：持久化 volume、原始回應雙份保存（DB + `data/raw`）、檔案日誌、備份/還原（含還原驗證）
+- [x] `health-check`：TWSE、TPEx、OpenAPI、ISIN、MOPS、MIS 逐端點記錄 HTTP 狀態、轉址、格式、筆數、延遲、是否安全警示頁
+- [x] `backfill-full`：可中斷、可續傳、進度存 DB、被擋自動冷卻重試、ETA；`backfill-status`
+- [x] `integrity-check`：各表筆數、行情缺日、法人/融資券/本益比缺日、月營收缺月、原始回應 sha256 抽驗、可重跑日
+- [~] ISIN 一覽表：雲端 IP 被擋；**本機家用 IP 可連線**（2026-10-31），本機部署後主檔改由 ISIN 取得
 - [ ] 過去年度休市日：TWSE 只能查當年度；過去以實際資料推斷（已實作）
 - [ ] TWSE MIS 盤中快照：雲端回 502，尚未驗證
 - [ ] TPEx 除權息（目前只有 TWSE TWT49U；上櫃股票的還原權值尚未處理）
@@ -52,7 +77,8 @@
 - [ ] 下市日期官方來源（目前以「最後出現日」推定）
 - [ ] FinMind 備援來源 adapter
 - [ ] 盤中快照排程（PHASE 3 一起做）
-- [ ] Docker 映像實際建置測試（開發環境沒有 Docker daemon）
+- [x] Docker 映像實際建置測試（2026-11-01 本機）
+- 2026-10-23（五）、10-26（一）TWSE 與 TPEx 都回「沒有資料」→ 記為休市（observed_data）。
 
 ## PHASE 2 — 量化研究與回測 ⏳
 - [ ] 策略介面（訊號只能讀 `available_at <= t` 的資料；資料存取層強制）
@@ -67,6 +93,7 @@
 見 ROADMAP.md。
 
 ## 已知問題 / 決策紀錄
+- 2026-10-31（晚）：決定以使用者 Windows 電腦（台灣家用 IP）為常駐開發、資料收集、模擬交易環境。PostgreSQL 用 external named volume（Windows 綁定掛載對 PostgreSQL 資料目錄權限/效能不佳），其餘（原始回應副本、日誌、報告、備份）綁定到專案資料夾方便直接檢視。回補以 `system_state` 存進度，不新增資料表（不需新 migration）。
 - 2026-10-30：開發用雲端環境無法連到 twse/tpex（proxy 403）。決策：先以「官方格式」合成資料離線測試整條流程，真實驗收移到可連線主機。
 - 2026-10-31：連續請求太快（含兩個回補程序同時跑）後，TWSE T86 等端點約 10 分鐘全部回安全警示頁。決策：節流預設 3→5 秒、安全警示頁視為 `SourceBlockedError`（不重試、不硬打）、回補加 `--only-missing` 續傳。
 - 2026-10-31（下午）：網域開放後驗收。`volume_without_close` 在真實資料出現（如 1538 只有盤後定價成交、收盤為 --），維持 ERROR＝當日不可交易，屬正確行為。2063 世鎧 10/28 漲跌超過 10%，推測為上櫃除權息（TPEx 除權息尚未接）。

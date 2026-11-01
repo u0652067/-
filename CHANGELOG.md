@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## [0.1.4] — 2026-11-01 — 本機部署實際執行
+- 安裝 Git 2.56、Docker Desktop 4.97（Engine 29.9.2）；本機資料夾接回 GitHub（分支 `claude/local-deploy-phase1`，基於 `claude/project-thread-fe2thb` d2e0123）。
+- 修正 `.gitignore`：`data/` 會誤忽略 `backend/aqt/data/`，改為只忽略根目錄 `/data/`、`/backups/`；`log_event` 的 WARN 改用 `logging.warning`。
+- 實際執行（證據 `evidence/2026-11-01_local_deploy/`）：測試 97 passed；健康檢查 28/28 OK；ISIN 證券主檔同步成功（上市 41,119、上櫃 13,723 筆，含 ISIN 碼）；`stop.ps1 -Remove` 後重建資料一致；`backup.ps1 -Verify` 與 `restore.ps1` 還原比對一致；smoke 回補 2019-01-02～01-11 完整（行情/法人/融資券/本益比/月營收 0 缺口）；pre_backfill 驗證備份（8.1 MB）與完整性基準報告後，啟動 2019-01-01～2026-10-31 全量回補（2,044 個平日）。
+- PHASE 1 仍為條件式驗收；未進入 PHASE 2。
+
+## [0.1.3] — 2026-10-31 — 本機持久化部署與 PHASE 1 收尾（條件式驗收）
+
+### 1. 完成項目
+- 長期主機決定為使用者 Windows 電腦（台灣家用 IP）。雲端資料庫不再視為正式資料。
+- `docker-compose.yml`：專案名 `aqt`；PostgreSQL 用 external volume `aqt_pgdata`（`down -v` 也不會刪）；原始回應副本 `data/raw`、日誌 `data/logs`、報告 `data/reports`、備份 `backups` 綁定到專案資料夾；`backfill`（可續傳、`restart: on-failure`）與 `test`（tmpfs 拋棄式資料庫）兩個 profile。
+- `scripts/`：`start.ps1`（首次自動產生 `.env` 隨機密碼、建立 volume、等 API 就緒）、`stop.ps1`、`backup.ps1`（pg_dump + sha256 + 筆數清單，`-Verify` 還原比對）、`restore.ps1`（sha256 檢查、先做安全備份、需 `-Force`）、`health.ps1`、`backfill.ps1`（smoke / start / status / stop / report / logs）、`test.ps1`。
+- 新指令：`health-check`（逐端點傳輸層證據，不重試）、`backfill-full`（進度存 `system_state`、中斷續傳、被擋冷卻重試、ETA、MOPS 歷史月營收階段、分季重算指標）、`backfill-status`、`integrity-check`（JSON + Markdown）。
+- 原始回應除 DB 外另存 `.gz` 檔（檔名含日期、raw_id、sha256 前 12 碼）；CLI 每個指令寫輪替日誌檔；`SIGTERM` 轉為 `SystemExit` 以保存進度。
+- README 改寫為本機部署手冊；TASKS 列出 PHASE 1 條件式驗收與資料缺口 G1–G12；TEST_PLAN 新增本機驗收條件 A1–A8。
+
+### 2. 實際執行證據（家用 IP，2026-10-31 13:55–13:58 台北）
+- MOPS 歷史月營收 `mopsov.twse.com.tw/nas/t21/{sii,otc}/t21sc03_*`：2019-01、2021-06、2024-12、2026-09 上市/上櫃共 8 頁全部 HTTP 200、無「FOR SECURITY REASONS」，本專案解析器分別解析 889/918/988/997（上市）、748/780/859/867（上櫃）家；原始頁 gzip 與 `mops_probe.json`（sha256、延遲）存於 `evidence/2026-10-31_home_ip/`。
+- 同一網路下 TWSE MI_INDEX/STOCK_DAY、T86 2019-01-02、MI_MARGN 2019-01-02、TPEx、OpenAPI 公司清單、ISIN 一覽表（9.8 MB）皆 HTTP 200。
+
+### 3. 測試結果
+- 新增 `tests/test_local_ops.py` 9 項；Python 與 PowerShell 檔案語法檢查通過。**本機尚無 Docker/PostgreSQL，完整測試尚未執行**（TEST_PLAN A1）。
+
+### 4. 尚未完成 / 發現的問題
+- 本機未安裝 Docker Desktop、WSL2、Git → 容器、回補、備份尚未實際執行；本次變更尚未 commit/push。
+- 資料缺口見 TASKS.md「尚未解決的資料缺口」G1–G12。
+
+### 5. 下一步
+- 使用者安裝 Docker Desktop 後依 TASKS 下一步 6–7 執行；**不進入 PHASE 2，等待使用者驗收。**
+
 ## [0.1.2] — 2026-10-31 — PHASE 1 真實來源驗收
 
 ### 1. 完成項目
