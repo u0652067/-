@@ -6,6 +6,7 @@ import os
 import signal
 from datetime import date, datetime, timedelta
 
+from aqt.config import get_settings
 from aqt.data.pit import TPE
 
 
@@ -70,6 +71,9 @@ def main(argv=None) -> None:
     ic.add_argument("--start", type=_d, default=date(2019, 1, 1))
     ic.add_argument("--end", type=_d)
     ic.add_argument("--out")
+    rq = sub.add_parser("review-quality", help="G13: classify price anomalies + independent sample verification")
+    rq.add_argument("--sample", type=int, default=5, help="verified samples per classification (0 = none)")
+    rq.add_argument("--out")
     sub.add_parser("scheduler", help="run the background scheduler (blocking)")
     a = sub.add_parser("api")
     a.add_argument("--port", type=int, default=8000)
@@ -126,6 +130,23 @@ def main(argv=None) -> None:
     elif args.cmd == "backfill-status":
         from aqt.data.backfill import status
         out = status(engine, args.state_key)
+    elif args.cmd == "review-quality":
+        from aqt.data import quality_review as qr
+        from aqt.data.http import Fetcher
+        f = Fetcher(engine)
+        try:
+            out = {"classified": qr.classify_move_issues(engine, f), "known_checks": qr.classify_known_checks(engine)}
+            out["sample_verification"] = qr.sample_verification(engine, f, args.sample) if args.sample else []
+            out["summary"] = qr.summary(engine)
+        finally:
+            f.close()
+        out_dir = args.out or (os.path.join(get_settings().report_dir, "quality") if get_settings().report_dir else None)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+            path = os.path.join(out_dir, f"quality_review_{datetime.now(TPE):%Y%m%dT%H%M%S}.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
+            out["saved_to"] = path
     elif args.cmd == "integrity-check":
         from aqt.data.integrity import run_integrity_check
         out = run_integrity_check(engine, args.start, args.end, args.out)

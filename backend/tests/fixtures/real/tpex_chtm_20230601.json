@@ -1,0 +1,100 @@
+{
+"date": "20230601",
+"tables": [
+{
+"title": "變更交易、分盤交易、管理股票與停止交易資訊",
+"date": "112/06/01",
+"totalCount": 6,
+"fields": [
+"證券代號",
+"證券名稱",
+"變更交易",
+"分盤交易",
+"屬管理股票",
+"分盤或管理股票撮合循環時間(分鐘)",
+"停止交易",
+"財務資訊重點專區",
+"公告連結",
+"財務重點專區連結"
+],
+"data": [
+[
+"1258",
+"其祥-KY",
+"",
+"",
+"",
+"",
+"Ｙ",
+"",
+"",
+"https://mops.twse.com.tw/mops/#/web/t211sb01_q1"
+],
+[
+"1799",
+"易威",
+"Ｙ",
+"",
+"",
+"",
+"",
+"Ｙ",
+"/zh-tw/announce/market/announce/detail.html?docId=MTExMDIwMzAyODE=&content_file=XX",
+"https://mops.twse.com.tw/mops/#/web/t211sb01_q1"
+],
+[
+"3064",
+"泰偉",
+"Ｙ",
+"Ｙ",
+"",
+"030",
+"",
+"Ｙ",
+"/zh-tw/announce/market/announce/detail.html?docId=MTEyMDIwMDYyODE=&content_file=XX",
+"https://mops.twse.com.tw/mops/#/web/t211sb01_q1"
+],
+[
+"2724",
+"富驛-KY",
+"Ｙ",
+"",
+"",
+"",
+"",
+"Ｙ",
+"/zh-tw/announce/market/announce/detail.html?docId=MTExMDIwMDYxMzE=&content_file=XX",
+"https://mops.twse.com.tw/mops/#/web/t211sb01_q1"
+],
+[
+"3073",
+"天方能源",
+"",
+"",
+"",
+"",
+"Ｙ",
+"Ｙ",
+"/zh-tw/announce/market/announce/detail.html?docId=MTEwMDAwMDk0NzE=&content_file=XX",
+"https://mops.twse.com.tw/mops/#/web/t211sb01_q1"
+],
+[
+"3085",
+"新零售",
+"Ｙ",
+"",
+"",
+"",
+"",
+"Ｙ",
+"/zh-tw/announce/market/announce/detail.html?docId=MTEyMDIwMDYyODE=&content_file=XX",
+"https://mops.twse.com.tw/mops/#/web/t211sb01_q1"
+]
+],
+"notes": [
+"當日如有臨時新增之變更交易有價證券標的，網頁右上角會呈現點選框，屆時請點選明細查詢。<br>另外，歷史資料也可點選此<span class=\"gtsm-sprite gtsm-sprite-icon-htm\"></span><a href=\"/zh-tw/mainboard/trading/day-trading/securities/change.html\" title=\"T89 查詢 (開新視窗)\" class=\"page-table-text_over\">連結</a> 查詢。"
+]
+}
+],
+"stat": "ok"
+}

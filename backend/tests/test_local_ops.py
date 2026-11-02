@@ -138,7 +138,8 @@ def test_integrity_report_counts_and_gaps(engine, fetcher, router, tmp_path):
     gaps = {(ds, r["market"]): r["days_missing"] for ds, rows in rep["secondary_gaps"].items() for r in rows}
     assert gaps == {("margin", "TWSE"): 9}
     assert rep["raw_payloads"]["sha256_sample"]["mismatch"] == 0
-    assert len(rep["rerunnable_days"]) == 9 and rep["verdict"]["complete"] is False
+    assert len(rep["rerunnable_days"]) == 9 and rep["verdict"]["coverage"]["complete"] is False
+    assert rep["verdict"]["backtest_ready"] is False
     assert os.path.exists(rep["saved_to"]) and os.path.exists(rep["saved_to"].replace(".json", ".md"))
 
 

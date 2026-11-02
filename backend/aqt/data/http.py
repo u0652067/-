@@ -66,13 +66,16 @@ class Fetcher:
         self._last_hit[host] = time.monotonic()
 
     def get(self, source: str, dataset: str, url: str, params: dict | None = None,
-            data_date: date | None = None) -> FetchResult:
+            data_date: date | None = None, form: dict | None = None) -> FetchResult:
+        """GET, or POST with `form` (url-encoded body) — MOPS summary reports only answer POST.
+        The archived `params` include the form so the request can be replayed."""
         host = urlparse(url).netloc
         last_exc: Exception | None = None
         for attempt in range(self.settings.http_max_retries):
             self._throttle(host)
             try:
-                resp = self.client.get(url, params=params)
+                resp = (self.client.post(url, params=params, data=form) if form is not None
+                        else self.client.get(url, params=params))
             except httpx.ProxyError as e:  # egress policy denial
                 raise SourceBlockedError(f"{host}: proxy refused connection ({e})") from e
             except (httpx.TimeoutException, httpx.TransportError) as e:
@@ -90,7 +93,8 @@ class Fetcher:
                 self._sleep(2 ** attempt * 5)
                 continue
             fetched_at = datetime.now(timezone.utc)
-            raw_id = self._archive(source, dataset, str(resp.url), params or {}, data_date,
+            archived = dict(params or {}, **({"_form": form} if form is not None else {}))
+            raw_id = self._archive(source, dataset, str(resp.url), archived, data_date,
                                    resp.status_code, resp.content, fetched_at)
             if resp.status_code != 200:
                 raise FetchError(f"{host}: HTTP {resp.status_code}")

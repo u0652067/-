@@ -37,6 +37,12 @@ def engine():
     eng.dispose()
 
 
+# PHASE 1 gap endpoints (corporate events, restrictions): empty unless a test overrides them
+EMPTY_LISTS = ("/bulletin/exDailyQ", "/reducation/TWTAUU", "/bulletin/revivt", "/change/TWTB8U",
+               "/bulletin/pvChgRslt", "/split/TWTCAU", "/announcement/punish", "/bulletin/disposal",
+               "/afterTrading/TWTAWU", "/fullDelivery/TWT85U", "/afterTrading/chtm")
+
+
 class Router:
     """httpx MockTransport that serves synthetic payloads by URL path; records calls; can inject failures."""
 
@@ -81,6 +87,8 @@ class Router:
             body = m.tpex_margin(self._d(q, "date", "%Y/%m/%d"))
         elif path.endswith("/afterTrading/peQryDate"):
             body = m.tpex_pe(self._d(q, "date", "%Y/%m/%d"))
+        elif any(path.endswith(x) for x in EMPTY_LISTS):
+            body = {"stat": "OK", "fields": [], "data": [], "tables": []}  # no events / restrictions
         else:
             return httpx.Response(404, text="unknown")
         return httpx.Response(200, content=json.dumps(body, ensure_ascii=False).encode("utf-8"))

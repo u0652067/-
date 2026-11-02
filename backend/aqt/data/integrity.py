@@ -23,8 +23,8 @@ from aqt.data.backfill import latest_published_revenue_month, status as backfill
 
 TABLES = ("securities", "trading_calendar", "raw_payloads", "daily_prices", "market_indices", "corporate_actions",
           "technical_indicators", "institutional_trades", "margin_trades", "valuations", "monthly_revenues",
-          "financial_statements", "data_quality_issues", "data_source_status", "job_runs", "system_logs",
-          "notifications")
+          "financial_statements", "trading_restrictions", "data_quality_issues", "data_source_status", "job_runs",
+          "system_logs", "notifications")
 SECONDARY = {"institutional": "institutional_trades", "margin": "margin_trades", "valuation": "valuations"}
 
 
@@ -115,6 +115,17 @@ def run_integrity_check(engine: Engine, start: date = date(2019, 1, 1), end: dat
           ORDER BY params->>'date', started_at DESC""", s=str(start), e=str(end))
         rep["rerunnable_days"] = [r for r in rep["rerunnable_days"] if r["status"] in ("FAILED", "PARTIAL", "RUNNING")]
         rep["safe_mode"] = c.execute(text("SELECT value FROM system_state WHERE key='safe_mode'")).scalar()
+        rep["corporate_actions_by_type"] = _rows(c, "SELECT s.market, a.action_type, count(*) n FROM corporate_actions a "
+                                                    "JOIN securities s ON s.id=a.security_id GROUP BY 1,2 ORDER BY 1,2")
+        rep["restrictions_by_type"] = _rows(c, "SELECT s.market, r.restriction_type, count(*) n, "
+                                               "count(DISTINCT r.security_id) securities, min(r.start_date)::text first, "
+                                               "max(coalesce(r.end_date, r.start_date))::text last FROM trading_restrictions r "
+                                               "JOIN securities s ON s.id=r.security_id GROUP BY 1,2 ORDER BY 1,2")
+        rep["financials_pit"] = _rows(c, "SELECT fiscal_year, published_basis, pit_reliable, count(*) n "
+                                         "FROM financial_statements GROUP BY 1,2,3 ORDER BY 1,2,3")
+        rep["quality_review"] = _rows(c, "SELECT check_name, severity, coalesce(classification,'UNCLASSIFIED') "
+                                         "classification, blocks_backtest, count(*) n FROM data_quality_issues "
+                                         "GROUP BY 1,2,3,4 ORDER BY 1,2,3")
     rep["backfill"] = backfill_status(engine)
     rep["verdict"] = _verdict(rep)
     out_dir = out_dir or (os.path.join(get_settings().report_dir, "integrity") if get_settings().report_dir else None)
@@ -130,29 +141,78 @@ def run_integrity_check(engine: Engine, start: date = date(2019, 1, 1), end: dat
 
 
 def _verdict(rep: dict) -> dict:
-    problems = []
+    """Coverage (is every expected row there?) and quality (can what is there be trusted?) are reported
+    separately: complete coverage with unexplained anomalies is not backtest-ready."""
+    gaps = []
     for r in rep["quotes_by_year"]:
         if r["days_missing_quotes"]:
-            problems.append(f"{r['market']} {r['year']}: {r['days_missing_quotes']} trading days without quotes")
+            gaps.append(f"{r['market']} {r['year']}: {r['days_missing_quotes']} trading days without quotes")
     for ds, rows in rep["secondary_gaps"].items():
         for r in rows:
-            problems.append(f"{r['market']} {ds}: {r['days_missing']} days missing ({r['first']}..{r['last']})")
+            gaps.append(f"{r['market']} {ds}: {r['days_missing']} days missing ({r['first']}..{r['last']})")
     for r in rep["revenue_months"]:
         if r["months_ok"] < r["months_expected"]:
-            problems.append(f"{r['market']} revenue: {r['months_expected'] - r['months_ok']} months missing/few")
+            gaps.append(f"{r['market']} revenue: {r['months_expected'] - r['months_ok']} months missing/few")
     if rep["unknown_weekdays"]:
-        problems.append(f"{len(rep['unknown_weekdays'])} weekdays never resolved (no data, not known holiday)")
-    if rep["raw_payloads"]["sha256_sample"]["mismatch"]:
-        problems.append("raw payload sha256 mismatch")
+        gaps.append(f"{len(rep['unknown_weekdays'])} weekdays never resolved (no data, not known holiday)")
     if rep["rerunnable_days"]:
-        problems.append(f"{len(rep['rerunnable_days'])} daily_update days FAILED/PARTIAL (re-runnable)")
-    return {"complete": not problems, "problems": problems}
+        gaps.append(f"{len(rep['rerunnable_days'])} daily_update days FAILED/PARTIAL (re-runnable)")
+    if rep["raw_payloads"]["sha256_sample"]["mismatch"]:
+        gaps.append("raw payload sha256 mismatch")
+
+    q = rep.get("quality_review", [])
+    unclassified = sum(r["n"] for r in q if r["classification"] == "UNCLASSIFIED" and r["severity"] != "INFO")
+    errors = sum(r["n"] for r in q if r["severity"] == "ERROR")
+    blocking = sum(r["n"] for r in q if r["blocks_backtest"])
+    notes = []
+    if unclassified:
+        notes.append(f"{unclassified} WARN/ERROR issues not yet classified")
+    if errors:
+        notes.append(f"{errors} ERROR issues (the security-day is excluded from the universe)")
+    if blocking:
+        notes.append(f"{blocking} issues block the security from backtests for "
+                     "tradability.QUALITY_BLOCK_DAYS calendar days")
+    fin_unreliable = sum(r["n"] for r in rep.get("financials_pit", []) if not r["pit_reliable"])
+    if fin_unreliable:
+        notes.append(f"{fin_unreliable} financial statements without reliable publication time "
+                     "(never returned by fundamentals.latest_statements_as_of)")
+    status = "CLEAN" if not (errors or unclassified or blocking) else (
+        "UNREVIEWED" if unclassified else "REVIEWED_WITH_EXCLUSIONS")
+    return {
+        "coverage": {"complete": not gaps, "gaps": gaps},
+        "quality": {"status": status, "errors": errors, "unclassified": unclassified,
+                    "blocking_backtest": blocking, "notes": notes},
+        # usable only when coverage is complete and every anomaly is classified; blocked items are kept
+        # out by tradability.blocked_securities, so their presence does not make the dataset unusable
+        "backtest_ready": not gaps and unclassified == 0,
+    }
 
 
 def to_markdown(rep: dict) -> str:
+    v = rep["verdict"]
     L = [f"# Integrity report {rep['generated_at']}", f"Window: {rep['window']}", "",
-         f"**Complete: {rep['verdict']['complete']}**", ""]
-    L += [f"- {p}" for p in rep["verdict"]["problems"]] or ["- no problems found"]
+         "| dimension | result |", "|---|---|",
+         f"| 覆蓋完整度 coverage | {'COMPLETE' if v['coverage']['complete'] else 'GAPS'} |",
+         f"| 資料品質狀態 quality | {v['quality']['status']} (ERROR {v['quality']['errors']}, "
+         f"unclassified {v['quality']['unclassified']}, blocking {v['quality']['blocking_backtest']}) |",
+         f"| 可用於回測 backtest_ready | {v['backtest_ready']} |", "", "### Coverage gaps"]
+    L += [f"- {p}" for p in v["coverage"]["gaps"]] or ["- none"]
+    L += ["", "### Quality notes"]
+    L += [f"- {p}" for p in v["quality"]["notes"]] or ["- none"]
+    L += ["", "## Data-quality review", "| check | severity | classification | blocks backtest | n |",
+          "|---|---|---|---|---:|"]
+    L += [f"| {r['check_name']} | {r['severity']} | {r['classification']} | {r['blocks_backtest']} | {r['n']:,} |"
+          for r in rep.get("quality_review", [])]
+    L += ["", "## Corporate actions", "| market | type | n |", "|---|---|---:|"]
+    L += [f"| {r['market']} | {r['action_type']} | {r['n']:,} |" for r in rep.get("corporate_actions_by_type", [])]
+    L += ["", "## Trading restrictions", "| market | type | rows | securities | first | last |",
+          "|---|---|---:|---:|---|---|"]
+    L += [f"| {r['market']} | {r['restriction_type']} | {r['n']:,} | {r['securities']} | {r['first']} | {r['last']} |"
+          for r in rep.get("restrictions_by_type", [])]
+    L += ["", "## Financial statements (point-in-time)", "| fiscal year | basis | pit_reliable | n |",
+          "|---|---|---|---:|"]
+    L += [f"| {r['fiscal_year']} | {r['published_basis']} | {r['pit_reliable']} | {r['n']:,} |"
+          for r in rep.get("financials_pit", [])]
     L += ["", "## Table rows", "| table | rows |", "|---|---:|"]
     L += [f"| {t} | {n:,} |" for t, n in rep["table_rows"].items()]
     L += ["", "## Quotes by market / year", "| market | year | known trading days | with quotes | missing |",
