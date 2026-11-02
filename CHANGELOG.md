@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [0.1.5] — 2026-11-02 — 2019 起全量回補完成
+- `backfill-full` 2019-01-01～2026-10-31：2026-11-01 20:00 → 11-02 10:47（台北），2,044 平日、94 個月全部 DONE、0 失敗、0 次安全警示；MOPS 歷史月營收 186 個市場月全部完成；技術指標 3,948,909 列。
+- 完整性報告（`evidence/2026-11-01_local_deploy/integrity_post_full_backfill.md`）：Complete=True。daily_prices 4,014,475、institutional_trades 3,563,322、margin_trades 3,621,536、valuations 3,410,130、monthly_revenues 163,697、corporate_actions 8,788、raw_payloads 15,729；資料庫 5.3 GB、原始回應檔 479 MB。
+- 品質檢查：`volume_without_close` 4,865（ERROR，當日不可交易，屬正確）、`move_exceeds_limit` 957（WARN，新增缺口 G13）。
+- PHASE 1 仍為條件式驗收（G3–G13）；未進入 PHASE 2，等待使用者驗收。
+
 ## [0.1.4] — 2026-11-01 — 本機部署實際執行
 - 安裝 Git 2.56、Docker Desktop 4.97（Engine 29.9.2）；本機資料夾接回 GitHub（分支 `claude/local-deploy-phase1`，基於 `claude/project-thread-fe2thb` d2e0123）。
 - 修正 `.gitignore`：`data/` 會誤忽略 `backend/aqt/data/`，改為只忽略根目錄 `/data/`、`/backups/`；`log_event` 的 WARN 改用 `logging.warning`。

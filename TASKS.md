@@ -8,7 +8,8 @@
 ### 尚未解決的資料缺口
 | # | 缺口 | 影響 | 目前處理 |
 |---|---|---|---|
-| G1 | 2019 起全量回補尚未在正式（本機）資料庫完成 | 回測樣本不完整 | `backfill.ps1 start` 可續傳執行；完成後以 `integrity-check` 報告驗收 |
+| ~~G1~~ | ~~2019 起全量回補~~ | — | ✅ 2026-11-02 10:47 完成：2019-01-01～2026-10-31，行情/法人/融資券/本益比 0 缺日、月營收 186/186 月、0 失敗、0 次被擋（`evidence/2026-11-01_local_deploy/integrity_post_full_backfill.md`） |
+| G13 | 品質檢查：`move_exceeds_limit` 957 筆（WARN） | 多數推測為上櫃除權息未還原（G4）或新上市首日，尚未逐筆確認 | 待 G4 完成後重跑品質檢查 |
 | ~~G2~~ | ~~本機尚未安裝 Docker Desktop / WSL2 / Git~~ | — | ✅ 2026-11-01 已安裝（Docker 4.97 / Engine 29.9.2、Git 2.56），部署已啟動 |
 | G3 | 過去年度休市日：TWSE 只提供當年度 | 過去年度以「實際有無行情」推斷 | 已實作；`integrity-check` 列出未解析的平日 |
 | G4 | TPEx 除權息（只有 TWSE TWT49U） | 上櫃股票還原權值錯誤（例：2063 世鎧 10/28） | 未處理 |
@@ -28,7 +29,7 @@
 4. [x] 本機持久化部署流程：`docker-compose.yml`（external volume `aqt_pgdata` + `data/raw`、`data/logs`、`data/reports`、`backups` 綁定）、`scripts/*.ps1`（啟動、停止、備份、還原、健康檢查、回補、測試）、README。
 5. [x] 家用 IP 重新驗證 MOPS 歷史月營收（2026-10-31 13:57 台北）：上市/上櫃 2019-01、2021-06、2024-12、2026-09 共 8 頁全部 HTTP 200、無安全警示頁，解析 748～997 筆；原始頁與 sha256 在 `evidence/2026-10-31_home_ip/`。同時 TWSE T86 / MI_MARGN 2019-01-02、ISIN 一覽表、OpenAPI 皆可連線（雲端 IP 被擋的端點在本機都正常）。
 6. [x] 2026-11-01：`start.ps1` → `test.ps1`（97 passed）→ `health.ps1`（28/28 OK）→ 容器重建驗證 → `backup.ps1 -Verify` / `restore.ps1` → smoke 回補（2019-01-02～01-11 完整）→ `backfill.ps1 start`（20:00 台北啟動，先做 pre_backfill 驗證備份與完整性基準）。
-7. [ ] 全量回補完成後（預估約 16 小時）`backfill.ps1 report`，依報告補齊缺漏，交使用者驗收。
+7. [x] 全量回補完成（2026-11-02 10:47，約 14.8 小時）；`integrity-check` Complete=True；回補後做驗證備份。**等待使用者驗收 PHASE 1。**
 8. [ ] 使用者驗收 PHASE 1 後才開始 PHASE 2。
 
 ## PHASE 0 — 架構與規劃 ✅
