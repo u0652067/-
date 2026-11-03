@@ -292,7 +292,8 @@ class Backtester:
         return bars
 
     def _rebalance(self, d: date, targets: dict[int, float], view: DataView) -> None:
-        eligible = set(view.universe().eligible)
+        # the universe is only needed when something may be bought (building it is the costly query)
+        eligible = set(view.universe().eligible) if any(w > 0 for w in targets.values()) else set()
         equity = Decimal(str(self.equity_curve[-1][1]))
         closes = {sid: b.close for sid, b in self._bars(set(targets) | set(self.pos), d).items()
                   if b.close is not None}

@@ -20,12 +20,15 @@ def _score(r: BacktestResult) -> float:
     return s if s is not None else float("-inf")
 
 
+PERSIST = True  # set False only for dry runs against a database without the PHASE 2 tables (no record kept)
+
+
 def run_and_save(session: Session, code: str, params: dict, cfg: BacktestConfig, kind: str,
-                 extra: dict | None = None) -> tuple[int, BacktestResult]:
+                 extra: dict | None = None) -> tuple[int | None, BacktestResult]:
     started = datetime.now(timezone.utc)
     strat = make(code, **params)
     res = run_backtest(session, strat, cfg)
-    return save_run(session, strat, res, kind, started, extra), res
+    return (save_run(session, strat, res, kind, started, extra) if PERSIST else None), res
 
 
 def _select(session, code, grid, cfg) -> tuple[dict, list]:
@@ -84,7 +87,7 @@ def walk_forward(session: Session, code: str, grid: list[dict], base: BacktestCo
                              strategy={"code": code, "grid": grid}, equity_curve=stitched, trades=trades,
                              fills=[], rejections=[], metrics=metrics, benchmark={})
     strat = make(code, **grid[0])
-    sid = save_run(session, strat, summary, "WALK_FORWARD", started,
+    sid = None if not PERSIST else save_run(session, strat, summary, "WALK_FORWARD", started,
                    {"role": "walk_forward_summary", "grid": grid, "windows": per_window, "child_run_ids": child_ids,
                     "train_days": train_days, "test_days": test_days, "anchored": anchored})
     return {"summary_run_id": sid, "windows": per_window, "oos_metrics": metrics}

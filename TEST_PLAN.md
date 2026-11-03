@@ -28,6 +28,25 @@ python -m pytest -q tests/test_pipeline.py -k safe_mode
 | `test_unexplained_move_becomes_blocking_error_new_listing_does_not` | **G13**：未解釋→ERROR＋阻擋 120 天；新上市前五日→不阻擋；ETF→阻擋 |
 | `test_integrity_reports_coverage_and_quality_separately` | integrity 分開呈現覆蓋完整度、資料品質、backtest_ready；不再有單一 Complete |
 
+## PHASE 2 技術面回測（`test_backtest.py` 15 項）
+| 測試 | 驗證內容 |
+|---|---|
+| `test_known_answer_round_trip_with_taiwan_costs` | **手算對答案**：買 5,000 股 @100（手續費 712）、賣 @110（手續費 783、證交稅 1,650），淨損益 46,855 |
+| `test_slippage_tiers_move_price_against_us_and_respect_ticks` | 滑價分級、跳動點、不超過漲跌停、最低手續費、整張 |
+| `test_limit_up_at_open_blocks_buy_and_limit_down_blocks_sell` | 開盤漲停買不到；開盤跌停賣不掉並隔日重試 |
+| `test_volume_participation_cap_and_board_lots` | 成交量 5% 上限部分成交、整張 |
+| `test_restricted_or_ineligible_stocks_are_never_bought` | 處置股不在股票池；成交日全額交割不得新買 |
+| `test_delisted_holding_is_liquidated_at_last_close` | 下市持股以最後收盤出場 |
+| `test_cash_dividend_preserves_value_through_ex_date` | 除息日權益不出現假損失 |
+| `test_dataview_never_sees_future_or_unpublished_rows` | 未來列、尚未公布列不可見；還原價以決策日重定基準 |
+| `test_future_data_cannot_change_past_results` | **竄改截止日後所有價格，截止日前回測結果雜湊不變** |
+| `test_fundamentals_are_refused_in_technical_backtests` | 財報存取與 allow_fundamentals 皆被拒 |
+| `test_records_are_append_only_reproducible_and_versioned` | 兩次執行雜湊相同；紀錄 UPDATE/DELETE 被觸發器拒絕；同版本參數不可改 |
+| `test_chronological_split_and_walk_forward_windows_never_look_back` | 時間切分與視窗不重疊、訓練早於測試 |
+| `test_walk_forward_and_oos_end_to_end` | Walk-forward 與樣本外完整流程與紀錄 |
+| `test_metrics_known_values_and_losers_counted` | 回撤、勝率（含虧損與打平）、期望值、Profit factor 已知答案 |
+| `test_baselines_run_and_cash_baseline_is_flat` | 現金基準恆等；等權基準只買股票池內股票且有成本 |
+
 ## PHASE 0/1 測試清單（目前 75 項，全部通過）
 2026-11-01 在本機 Docker 執行：**97 passed**（`scripts\test.ps1`，29.6 秒）。
 

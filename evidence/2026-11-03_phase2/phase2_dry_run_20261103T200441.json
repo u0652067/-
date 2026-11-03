@@ -1,0 +1,269 @@
+{
+ "disclaimer": "研究用途的歷史模擬結果。回測績效不代表未來表現，不構成任何策略有效、可獲利或可交易的宣稱，亦非投資建議。Research-only historical simulation; not evidence that any strategy is effective, profitable or tradable.",
+ "runs": {
+  "cash_baseline": {
+   "params": {},
+   "seconds": 286.5,
+   "deterministic": true,
+   "results_hash": "0a0875a12abbdb31770fde5a5feea8c7e6eedec91200ee770d4a1eed76db13ae",
+   "metrics": {
+    "days": 242,
+    "start": "2024-01-02",
+    "end": "2024-12-31",
+    "final_equity": 10000000.0,
+    "total_return": 0.0,
+    "cagr": 0.0,
+    "annual_volatility": 0.0,
+    "sharpe": null,
+    "max_drawdown": 0.0,
+    "max_drawdown_period": [
+     "initial",
+     null
+    ],
+    "trades": 0,
+    "win_rate": null,
+    "avg_win": null,
+    "avg_loss": null,
+    "expectancy_per_trade": null,
+    "profit_factor": null,
+    "gross_pnl_closed_trades": 0,
+    "net_pnl_closed_trades": 0,
+    "costs": {
+     "commission": 0,
+     "tax": 0,
+     "slippage_vs_open": 0,
+     "total_explicit": 0,
+     "total_incl_slippage": 0
+    },
+    "turnover": 0.0,
+    "avg_exposure": 0.0,
+    "net_of_costs": true,
+    "benchmark_total_return": 0.29021001738569363,
+    "excess_return_vs_benchmark": -0.29021001738569363,
+    "benchmark_max_drawdown": -0.1869267893479425
+   },
+   "rejections_by_reason": {},
+   "fills": 0,
+   "corporate_action_adjustments": 0
+  },
+  "ew_liquid_baseline": {
+   "params": {
+    "top_n": 30
+   },
+   "seconds": 30.9,
+   "deterministic": true,
+   "results_hash": "7d4968ec4b66f15ca59994f58879b821c04a8557c59da92ba606e20f5397c83e",
+   "metrics": {
+    "days": 242,
+    "start": "2024-01-02",
+    "end": "2024-12-31",
+    "final_equity": 10038101.33,
+    "total_return": 0.003810133116404435,
+    "cagr": 0.0038232423451092235,
+    "annual_volatility": 0.17441927834813623,
+    "sharpe": 0.11026868141055701,
+    "max_drawdown": -0.15958704461724005,
+    "max_drawdown_period": [
+     "2024-06-20",
+     "2024-08-06"
+    ],
+    "trades": 105,
+    "win_rate": 0.3523809523809524,
+    "avg_win": 57761.12971992027,
+    "avg_loss": -30861.59779072598,
+    "expectancy_per_trade": 367.36333207317,
+    "profit_factor": 1.0183805196277613,
+    "gross_pnl_closed_trades": 218402.14986768283,
+    "net_pnl_closed_trades": 38573.14986768285,
+    "costs": {
+     "commission": 107844.0,
+     "tax": 71985.0,
+     "slippage_vs_open": 137255.55,
+     "total_explicit": 179829.0,
+     "total_incl_slippage": 317084.55
+    },
+    "turnover": 6.162392672653205,
+    "avg_exposure": 0.5968913685364577,
+    "net_of_costs": true,
+    "benchmark_total_return": 0.29021001738569363,
+    "excess_return_vs_benchmark": -0.2863998842692892,
+    "benchmark_max_drawdown": -0.1869267893479425
+   },
+   "rejections_by_reason": {
+    "restricted:disposition": 1
+   },
+   "fills": 220,
+   "corporate_action_adjustments": 21
+  },
+  "ma_trend_momentum": {
+   "params": {
+    "top_n": 20,
+    "lookback": 20
+   },
+   "seconds": 132.6,
+   "deterministic": true,
+   "results_hash": "cccc14d86b902537e6574414715a0a674a5e1cd6ecf669bbea764843248b4e8b",
+   "metrics": {
+    "days": 242,
+    "start": "2024-01-02",
+    "end": "2024-12-31",
+    "final_equity": 9318895.75,
+    "total_return": -0.06811042456814853,
+    "cagr": -0.06833614028572466,
+    "annual_volatility": 0.33062247537459366,
+    "sharpe": -0.057783117572482535,
+    "max_drawdown": -0.2888898812508012,
+    "max_drawdown_period": [
+     "2024-08-29",
+     "2024-12-17"
+    ],
+    "trades": 592,
+    "win_rate": 0.3766891891891892,
+    "avg_win": 70546.03579145619,
+    "avg_loss": -44420.204626592866,
+    "expectancy_per_trade": -1113.6647393885773,
+    "profit_factor": 0.9597774819670447,
+    "gross_pnl_closed_trades": 1108100.474281962,
+    "net_pnl_closed_trades": -659289.5257180379,
+    "costs": {
+     "commission": 883159.0,
+     "tax": 884231.0,
+     "slippage_vs_open": 1672114.68,
+     "total_explicit": 1767390.0,
+     "total_incl_slippage": 3439504.6799999997
+    },
+    "turnover": 60.60509822026506,
+    "avg_exposure": 0.8679577867555207,
+    "net_of_costs": true,
+    "benchmark_total_return": 0.29021001738569363,
+    "excess_return_vs_benchmark": -0.35832044195384216,
+    "benchmark_max_drawdown": -0.1869267893479425
+   },
+   "rejections_by_reason": {
+    "restricted:disposition": 30,
+    "limit_up_at_open": 16,
+    "limit_down_at_open": 3
+   },
+   "fills": 1340,
+   "corporate_action_adjustments": 16
+  }
+ },
+ "walk_forward": {
+  "seconds": 352.1,
+  "windows": [
+   {
+    "window": {
+     "train_start": "2023-07-03",
+     "train_end": "2023-12-21",
+     "test_start": "2023-12-22",
+     "test_end": "2024-03-27"
+    },
+    "selected_params": {
+     "top_n": 20,
+     "lookback": 60
+    },
+    "test_run_id": null,
+    "test_metrics": {
+     "total_return": 0.09895033341350268,
+     "sharpe": 1.4249085800349799,
+     "max_drawdown": -0.0956048071306328,
+     "trades": 125,
+     "win_rate": 0.416
+    }
+   },
+   {
+    "window": {
+     "train_start": "2023-09-26",
+     "train_end": "2024-03-27",
+     "test_start": "2024-03-28",
+     "test_end": "2024-06-25"
+    },
+    "selected_params": {
+     "top_n": 20,
+     "lookback": 60
+    },
+    "test_run_id": null,
+    "test_metrics": {
+     "total_return": -0.09810422535081398,
+     "sharpe": -1.4448317994699547,
+     "max_drawdown": -0.15661880092445413,
+     "trades": 129,
+     "win_rate": 0.3798449612403101
+    }
+   },
+   {
+    "window": {
+     "train_start": "2023-12-22",
+     "train_end": "2024-06-25",
+     "test_start": "2024-06-26",
+     "test_end": "2024-09-20"
+    },
+    "selected_params": {
+     "top_n": 20,
+     "lookback": 60
+    },
+    "test_run_id": null,
+    "test_metrics": {
+     "total_return": 0.12454273177117337,
+     "sharpe": 1.4134299826152863,
+     "max_drawdown": -0.1902661099708971,
+     "trades": 133,
+     "win_rate": 0.42857142857142855
+    }
+   },
+   {
+    "window": {
+     "train_start": "2024-03-28",
+     "train_end": "2024-09-20",
+     "test_start": "2024-09-23",
+     "test_end": "2024-12-19"
+    },
+    "selected_params": {
+     "top_n": 10,
+     "lookback": 20
+    },
+    "test_run_id": null,
+    "test_metrics": {
+     "total_return": -0.2753073479916982,
+     "sharpe": -3.7917668604027694,
+     "max_drawdown": -0.29804044100615157,
+     "trades": 81,
+     "win_rate": 0.25925925925925924
+    }
+   }
+  ],
+  "oos_metrics": {
+   "days": 240,
+   "start": "2023-12-22",
+   "end": "2024-12-19",
+   "final_equity": 8077263.26,
+   "total_return": -0.19227367360015823,
+   "cagr": -0.1933420288575195,
+   "annual_volatility": 0.3422149198981691,
+   "sharpe": -0.48667465458012477,
+   "max_drawdown": -0.3315830198560743,
+   "max_drawdown_period": [
+    "2024-07-18",
+    "2024-12-17"
+   ],
+   "trades": 468,
+   "win_rate": 0.38247863247863245,
+   "avg_win": 69633.64893378134,
+   "avg_loss": -49722.51096526617,
+   "expectancy_per_trade": -4071.330149177485,
+   "profit_factor": 0.8674037385258037,
+   "gross_pnl_closed_trades": -362335.6358320245,
+   "net_pnl_closed_trades": -1905382.509815063,
+   "costs": {
+    "commission": 818395.0,
+    "tax": 650845.0,
+    "slippage_vs_open": 1234382.46,
+    "total_explicit": 1469240.0,
+    "total_incl_slippage": 2703622.46
+   },
+   "turnover": 50.566775133320526,
+   "avg_exposure": 0.8459096528912559,
+   "net_of_costs": true
+  }
+ }
+}

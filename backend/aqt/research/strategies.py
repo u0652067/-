@@ -51,6 +51,9 @@ class CashBaseline(Strategy):
     version: str = "V1"
     description: str = "Holds cash; any non-zero result indicates an engine bug."
 
+    def is_decision_day(self, d, prev):
+        return prev is None
+
     def target_weights(self, view, holdings):
         return {}
 
