@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [0.2.1] — 2026-11-03 — PR #2 收尾
+- G7 財報公告時間回補完成：15,374/15,374；54,729 筆可靠、618 筆查無公告時間（永久排除）。
+- integrity 與 `/api/health` 改為分開呈現 `technical_backtest_ready`、`fundamental_backtest_ready`（不再有單一 backtest_ready）；狀態存於 `system_state.data_readiness`。
+- 每日流程結束時同步分類已知品質問題（避免新日期出現未分類問題）。
+- 最終驗證：測試 108 passed；integrity coverage COMPLETE、quality REVIEWED_WITH_EXCLUSIONS（未分類 0）、technical_backtest_ready=true、fundamental_backtest_ready=false；G13 抽驗 25/25 相符；健康檢查 27/28（MIS 盤後逾時）。
+
 ## [0.2.0] — 2026-11-03 — PHASE 1 驗收缺口修正（PR，待審；未進入 PHASE 2）
 - **G4/G8** 新來源 `sources/corporate_events.py`：TPEx 除權息（exDailyQ）、上市/上櫃減資（TWTAUU / revivt）、上市/上櫃面額變更（TWTB8U / pvChgRslt）、上市 ETF 分割（TWTCAU）。還原因子＝參考價/前收，對所有事件一致；除權息日遇休市（颱風）套用到下一交易日。
 - **G6** 新來源 `sources/restrictions.py` 與資料表 `trading_restrictions`：處置（區間）、變更交易/全額交割（每日）、分盤、管理股票、停止交易、暫停交易。`tradability.blocked_securities()` 由 `build_universe()` 呼叫；每日排程同步更新。
