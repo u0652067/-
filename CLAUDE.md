@@ -42,6 +42,7 @@ backend/aqt/
     smoke.py           真實來源煙霧測試（check-sources）
   indicators/          technical.py（純計算）、compute.py（寫入 DB、還原權值）
   jobs/                runtime.py（job_runs、安全模式、通知）、scheduler.py（APScheduler）
+  research/            PHASE 2 回測：engine、dataview（PIT）、costs、strategies、metrics、splits、evaluation、records（見 docs/BACKTEST.md）
   api/main.py          FastAPI（唯讀資料 API）
   cli.py               python -m aqt.cli <command>
 backend/alembic/       0001 schema、0002 稽核觸發器
