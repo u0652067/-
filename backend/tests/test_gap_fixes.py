@@ -87,8 +87,8 @@ def tpex_div_market():
     return Market(date(2024, 1, 2), days=70, ex_div=("6488", 40, 120.0))  # >20% drop without the event
 
 
-def _ex_payload(m, code, idx, div):
-    d = m.dates[idx]
+def _ex_payload(m, code, idx, div, ex_date=None):
+    d = ex_date or m.dates[idx]
     prev = m.bars[("TPEX", code)][m.dates[idx - 1]]["close"]
     row = [f"{d.year - 1911}/{d.month:02d}/{d.day:02d}", code, "環球晶", f"{prev:.2f}", f"{prev - div:.2f}", "0",
            f"{div}", f"{div}", "除息", "", "", "", "", f"{div}", "0", "0", "0", "0", "0", "0", "0"]
@@ -148,6 +148,27 @@ def test_capital_reduction_and_par_change_events_adjust_history(engine, fetcher,
         assert s.scalar(select(CorporateAction.action_type).where(CorporateAction.security_id == sid)) \
             == "CAPITAL_REDUCTION"
         assert float(s.get(DailyPrice, (sid, m.dates[9])).adj_factor) == pytest.approx(2.0, rel=1e-6)
+
+
+def test_ex_date_on_closed_day_applies_to_next_trading_day(engine, tpex_div_market):
+    """Typhoon closures: the official ex-date can be a day without trading (e.g. 2024-07-24/25)."""
+    m = tpex_div_market
+    idx = next(i for i in range(35, 60) if m.dates[i].weekday() == 0)  # a Monday
+    m2 = Market(date(2024, 1, 2), days=70, ex_div=("6488", idx, 120.0))
+    router = Router(m2)
+    f = Fetcher(engine, transport=httpx.MockTransport(router), sleep=lambda s: None)
+    pipeline.backfill(engine, m2.dates[0], m2.dates[-1], f)
+    saturday = m2.dates[idx] - timedelta(days=2)
+    router.override["/bulletin/exDailyQ"] = _ex_payload(m2, "6488", idx, 120.0, ex_date=saturday)
+    events.ingest_corporate_events(engine, f, m2.dates[0], m2.dates[-1], ("tpex_ex_rights",))
+    events.refresh_prev_close_on_event_days(engine, m2.dates[0], m2.dates[-1])
+    assert quality_review.classify_move_issues(engine, None) == {"CORPORATE_ACTION_DIV": 1}
+    f.close()
+    prev = m2.bars[("TPEX", "6488")][m2.dates[idx - 1]]["close"]
+    with session_scope(engine) as s:
+        sid = _sid(s, "6488", "TPEX")
+        assert float(s.get(DailyPrice, (sid, m2.dates[idx])).prev_close) == pytest.approx(prev - 120.0, abs=0.01)
+        assert float(s.get(DailyPrice, (sid, m2.dates[idx - 1])).adj_factor) < 1
 
 
 # ------------------------------------------------------------------ G6: restrictions -> universe

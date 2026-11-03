@@ -17,7 +17,7 @@ from aqt.data.sources import restrictions as rs
 from aqt.db import session_scope
 from aqt.indicators.compute import recompute_adj_factors
 from aqt.jobs.runtime import record_source
-from aqt.models import CorporateAction, FinancialStatement, Security
+from aqt.models import CorporateAction, DailyPrice, FinancialStatement, Security
 
 log = logging.getLogger(__name__)
 
@@ -79,11 +79,20 @@ def refresh_prev_close_on_event_days(engine: Engine, start: date, end: date) -> 
     replaces the raw previous close with the exchange's reference price."""
     from aqt.data.quality import fill_prev_close_and_limits
     with session_scope(engine) as s:
-        days = s.execute(select(Security.market, CorporateAction.ex_date).distinct()
-                         .join(Security, Security.id == CorporateAction.security_id)
-                         .where(CorporateAction.ex_date.between(start, end))).all()
+        ex = s.execute(select(Security.market, CorporateAction.ex_date).distinct()
+                       .join(Security, Security.id == CorporateAction.security_id)
+                       .where(CorporateAction.ex_date.between(start, end))).all()
+        # an ex-date on a closed day (typhoon, holiday shift) applies to the next trading day
+        days = set()
+        for market, d in ex:
+            nxt = s.scalar(select(func.min(DailyPrice.trade_date))
+                           .join(Security, Security.id == DailyPrice.security_id)
+                           .where(Security.market == market, DailyPrice.trade_date >= d,
+                                  DailyPrice.trade_date <= d + timedelta(days=14)))
+            if nxt is not None:
+                days.add((market, nxt))
     n = 0
-    for market, d in days:
+    for market, d in sorted(days):
         with session_scope(engine) as s:
             n += fill_prev_close_and_limits(s, d, market)
     return n

@@ -15,7 +15,7 @@ than the market-wide files the pipeline ingests.
 """
 import logging
 import random
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -83,9 +83,24 @@ def _context(s, sid: int, d: date):
                      .where(DailyPrice.security_id == sid, DailyPrice.trade_date < d,
                             DailyPrice.close.is_not(None))
                      .order_by(DailyPrice.trade_date.desc()).limit(1)).first()
+    # ex-date may fall on a closed day (typhoon): the event applies to the first trading day after it
+    lo = prev[0] if prev else d - timedelta(days=1)
     acts = [a for (a,) in s.execute(select(CorporateAction.action_type)
-                                    .where(CorporateAction.security_id == sid, CorporateAction.ex_date == d))]
+                                    .where(CorporateAction.security_id == sid, CorporateAction.ex_date > lo,
+                                           CorporateAction.ex_date <= d))]
     return p, prev, acts
+
+
+def _trading_days_since_listing(s, sid: int, listed: date | None, d: date) -> int | None:
+    """Trading days from (re)listing to d. Without an ISIN listing date (board transfers, innovation
+    board) the first stored price counts as listing, unless it is the first day of the whole dataset."""
+    first = s.scalar(select(func.min(DailyPrice.trade_date)).where(DailyPrice.security_id == sid))
+    data_start = s.scalar(select(func.min(DailyPrice.trade_date)))
+    starts = [x for x in (listed, first if first and first > data_start else None) if x and x <= d]
+    if not starts:
+        return None
+    return s.scalar(select(func.count()).select_from(DailyPrice)
+                    .where(DailyPrice.security_id == sid, DailyPrice.trade_date.between(max(starts), d)))
 
 
 def classify_move_issues(engine: Engine, fetcher: Fetcher | None = None, verify: bool = True,
@@ -100,18 +115,16 @@ def classify_move_issues(engine: Engine, fetcher: Fetcher | None = None, verify:
             detail: dict = {}
             if p is None or p.close is None or p.prev_close is None:
                 cls = "UNEXPLAINED"
-            elif acts:
+            elif acts and abs(p.close - p.prev_close) / p.prev_close <= Decimal("0.10") + LIMIT_TOLERANCE:
                 move = abs(p.close - p.prev_close) / p.prev_close
-                cls = (f"CORPORATE_ACTION_{acts[0]}" if move <= Decimal("0.10") + LIMIT_TOLERANCE
-                       else "CORPORATE_ACTION_MISMATCH")
-                detail = {"actions": acts, "move_vs_reference": f"{move:.4f}"}
-            elif listed and d >= listed and s.scalar(
-                    select(func.count()).select_from(DailyPrice)
-                    .where(DailyPrice.security_id == sid, DailyPrice.trade_date.between(listed, d))) \
-                    <= NEW_LISTING_FREE_DAYS:
-                cls, detail = "NEW_LISTING_NO_LIMIT", {"listed_date": str(listed)}
+                cls, detail = f"CORPORATE_ACTION_{acts[0]}", {"actions": acts, "move_vs_reference": f"{move:.4f}"}
+            elif (n := _trading_days_since_listing(s, sid, listed, d)) is not None and n <= NEW_LISTING_FREE_DAYS:
+                cls, detail = "NEW_LISTING_NO_LIMIT", {"listed_date": str(listed), "trading_day_no": n}
             elif stype == "ETF":
                 cls = "ETF_NO_PRICE_LIMIT_UNVERIFIED"
+            elif acts:
+                move = abs(p.close - p.prev_close) / p.prev_close
+                cls, detail = "CORPORATE_ACTION_MISMATCH", {"actions": acts, "move_vs_reference": f"{move:.4f}"}
             else:
                 cls = "UNEXPLAINED"
                 if fetcher is not None and verify:
@@ -127,8 +140,8 @@ def classify_move_issues(engine: Engine, fetcher: Fetcher | None = None, verify:
             row.classification, row.reviewed_at = cls, now
             row.blocks_backtest = cls in BLOCKING
             row.resolved = cls not in BLOCKING
-            if cls in ("UNEXPLAINED", "DATA_SOURCE_ERROR", "CORPORATE_ACTION_MISMATCH"):
-                row.severity = "ERROR"
+            # re-classification after new events may clear an earlier ERROR
+            row.severity = "ERROR" if cls in ("UNEXPLAINED", "DATA_SOURCE_ERROR", "CORPORATE_ACTION_MISMATCH")                 else "WARN"
             row.detail = {**(row.detail or {}), "review": detail} if detail else row.detail
         counts[cls] = counts.get(cls, 0) + 1
     return counts

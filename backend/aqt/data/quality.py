@@ -32,8 +32,10 @@ def check_prices(session: Session, d: date, market: str) -> list[Issue]:
     if not rows:
         return [Issue("no_price_rows", "ERROR", "daily_prices", None, d, {"market": market})]
 
+    # an event whose ex-date fell on a closed day (e.g. typhoon) takes effect on the next trading day
+    prev_day = previous_observed_trading_date(session, market, d)
     ex_dates = {sid for (sid,) in session.execute(
-        select(CorporateAction.security_id).where(CorporateAction.ex_date == d))}
+        select(CorporateAction.security_id).where(_effective_on(d, prev_day)))}
 
     for p, code, stype in rows:
         o, h, l, c = p.open, p.high, p.low, p.close
@@ -58,7 +60,7 @@ def check_prices(session: Session, d: date, market: str) -> list[Issue]:
                                      "move": f"{move:.4f}",
                                      "hint": "unrecorded corporate action, first trading days, or bad data"}))
 
-    prev = previous_observed_trading_date(session, market, d)
+    prev = prev_day
     if prev is not None:
         prev_n = session.scalar(select(func.count()).select_from(DailyPrice)
                                 .join(Security, Security.id == DailyPrice.security_id)
@@ -96,6 +98,13 @@ def summarize(issues: list[Issue]) -> dict:
     return out
 
 
+def _effective_on(d: date, prev_trading_day: date | None):
+    """Corporate actions that apply to trading day d: ex-date in (previous trading day, d]."""
+    if prev_trading_day is None:
+        return CorporateAction.ex_date == d
+    return and_(CorporateAction.ex_date > prev_trading_day, CorporateAction.ex_date <= d)
+
+
 def fill_prev_close_and_limits(session: Session, d: date, market: str) -> int:
     """Set prev_close (adjusted by any ex-rights reference price) and ±10% limits for date d."""
     from aqt.data.tw_rules import price_limits
@@ -109,7 +118,7 @@ def fill_prev_close_and_limits(session: Session, d: date, market: str) -> int:
         .join(Security, Security.id == DailyPrice.security_id)
         .join(P, and_(P.security_id == DailyPrice.security_id, P.trade_date == prev), isouter=True)
         .join(CorporateAction, and_(CorporateAction.security_id == DailyPrice.security_id,
-                                    CorporateAction.ex_date == d), isouter=True)
+                                    _effective_on(d, prev)), isouter=True)
         .where(DailyPrice.trade_date == d, Security.market == market)).all()
     n = 0
     for p, prev_close, stype, ref in rows:

@@ -13,6 +13,21 @@ cd backend && python -m pytest -q        # 全部
 python -m pytest -q tests/test_pipeline.py -k safe_mode
 ```
 
+## PHASE 1 缺口修正（2026-11-02，`test_gap_fixes.py` 10 項）
+2026-11-03 Docker：**107 passed**。
+| 測試 | 驗證內容 |
+|---|---|
+| `test_corporate_event_parsers_real_payloads` | 真實回應：TPEx 除權息、上市/上櫃減資、面額變更、ETF 分割/反分割 |
+| `test_restriction_parsers_real_payloads` | 真實回應：處置（上市/上櫃，略過「本日無處置資料」）、全額交割＋分盤、chtm 四種旗標、暫停交易 |
+| `test_mops_history_parsers_real_payloads` | 真實回應：台積電 2019Q1 營收/EPS/總資產、銀行營收、電子文件上傳時間（精確到秒） |
+| `test_tpex_ex_rights_fixes_prev_close_adjustment_and_anomaly` | **G4 回歸**：未接上櫃除權息時出現 >20% 異常；接入後前收＝參考價、還原因子正確、異常改判 CORPORATE_ACTION 且不阻擋 |
+| `test_ex_date_on_closed_day_applies_to_next_trading_day` | 除權息日遇休市（颱風）→ 套用到下一交易日 |
+| `test_capital_reduction_and_par_change_events_adjust_history` | **G8**：減資參考價使歷史價格還原因子＝2 |
+| `test_restrictions_exclude_from_universe_point_in_time` | **G6**：處置公布當晚起排除、公布前不排除、結束後恢復；全額交割只影響當日 |
+| `test_financial_history_publication_time_gates_backtest_access` | **G7**：無公告時間者永遠不回傳；公告前 1 秒不可見、公告當下可見 |
+| `test_unexplained_move_becomes_blocking_error_new_listing_does_not` | **G13**：未解釋→ERROR＋阻擋 120 天；新上市前五日→不阻擋；ETF→阻擋 |
+| `test_integrity_reports_coverage_and_quality_separately` | integrity 分開呈現覆蓋完整度、資料品質、backtest_ready；不再有單一 Complete |
+
 ## PHASE 0/1 測試清單（目前 75 項，全部通過）
 2026-11-01 在本機 Docker 執行：**97 passed**（`scripts\test.ps1`，29.6 秒）。
 
@@ -39,7 +54,7 @@ python -m pytest -q tests/test_pipeline.py -k safe_mode
 | A4 | 來源健康檢查 | `health.ps1` | ✅ 28/28 OK（TWSE 含 2019、TPEx 含 2019、OpenAPI、ISIN 上市 41,119／上櫃 13,723 筆、MOPS 歷史月營收、MIS） |
 | A5 | MOPS 歷史月營收（家用 IP） | 8 個月份頁面實抓 + 本專案解析器 | ✅ 全部 200、748～997 筆 |
 | A6 | 小批次回補 | `backfill-full 2019-01-02～01-11`（smoke 進度紀錄）+ 完整性報告 | ✅ 8/8 交易日、法人/融資券/本益比 0 缺日、月營收 2/2；抽驗 2330 2019-01-02 收盤 219.5、2019-01 營收 78,093,827 千元 |
-| A7 | 全量回補可中斷續傳 | 執行中 `backfill.ps1 stop` → `start`，`status` 的 days_done 連續 | 🟡 自動化測試通過；真實環境待執行 |
+| A7 | 全量回補可中斷續傳 | 真實 Docker：獨立資料庫 `aqt_a7` 回補 2019-01，跑到第 8 天 `docker stop`，再 `docker start` | ✅ 2026-11-02：SIGTERM 1 秒內停止並記錄 INTERRUPTED；續傳不重抓已完成日；行情、法人逐日與正式庫一致；原始回應 161/171 位元組相同，其餘 10 筆 T86 僅列順序不同（`evidence/2026-11-02_gap_fixes/A7_interrupt_resume.md`） |
 | A8 | 全量回補完成報告 | `backfill.ps1 report` | ✅ 2026-11-02：Complete=True；2019–2026 上市/上櫃各年已知交易日 100% 有行情（共 1,899 日），法人/融資券/本益比 0 缺日，月營收 93/93 月×2 市場，可重跑日 0，raw sha256 抽驗 0 不符 |
 
 ## 尚未能測
