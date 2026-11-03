@@ -221,6 +221,23 @@ def test_fundamentals_are_refused_in_technical_backtests(engine):
             Backtester(s, CashBaseline(), _cfg(allow_fundamentals=True))
 
 
+def test_engine_refuses_when_integrity_says_technical_not_ready(engine):
+    from aqt.jobs.runtime import set_state
+    from aqt.research.engine import DataNotReady
+    _make(engine, {"1515": {}})
+    set_state(engine, "data_readiness", {"technical_backtest_ready": False, "fundamental_backtest_ready": False,
+                                         "quality_status": "UNREVIEWED"})
+    with session_scope(engine) as s:
+        with pytest.raises(DataNotReady):
+            Backtester(s, CashBaseline(), _cfg())
+    set_state(engine, "data_readiness", {"technical_backtest_ready": True, "fundamental_backtest_ready": False})
+    with session_scope(engine) as s:
+        res = run_backtest(s, CashBaseline(), _cfg())
+        assert res.config["data_readiness_at_run"]["fundamental_backtest_ready"] is False
+        with pytest.raises(FundamentalsNotAllowed):
+            Backtester(s, CashBaseline(), _cfg(allow_fundamentals=True))
+
+
 # ------------------------------------------------------------------ records
 def test_records_are_append_only_reproducible_and_versioned(engine):
     ids = _make(engine, {"1414": {**{i: (100.0 + i - 60, 100.0 + i - 60, 1_000_000) for i in range(61, 80)}}})

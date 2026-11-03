@@ -94,12 +94,19 @@ class BacktestResult:
         return hashlib.sha256(blob.encode()).hexdigest()
 
 
+class DataNotReady(RuntimeError):
+    """The latest integrity check says the technical dataset is not ready for backtests."""
+
+
 class Backtester:
     def __init__(self, session: Session, strategy: Strategy, config: BacktestConfig):
-        if config.allow_fundamentals:
-            ready = (get_state_safe(session) or {}).get("fundamental_backtest_ready")
-            if not ready:
-                raise FundamentalsNotAllowed("fundamental_backtest_ready is false: fundamentals cannot be enabled")
+        readiness = get_state_safe(session)
+        if readiness is not None and readiness.get("technical_backtest_ready") is False:
+            raise DataNotReady(f"technical_backtest_ready is false ({readiness.get('quality_status')}): "
+                               "run integrity-check / review-quality first")
+        if config.allow_fundamentals and not (readiness or {}).get("fundamental_backtest_ready"):
+            raise FundamentalsNotAllowed("fundamental_backtest_ready is false: fundamentals cannot be enabled")
+        self.readiness = readiness
         self.s, self.strategy, self.cfg = session, strategy, config
         self.cm = config.cost_model
         self.cash = Decimal(str(config.initial_cash))
@@ -350,7 +357,7 @@ class Backtester:
             self.equity_curve[-1] = [str(end), float(self.cash), float(self.cash), 0.0]
         bench = self._benchmark(days)
         metrics = compute_metrics(self.equity_curve, self.trades, self.fills, self.cfg.initial_cash, bench)
-        return BacktestResult(config=self.cfg.to_dict(),
+        return BacktestResult(config={**self.cfg.to_dict(), "data_readiness_at_run": self.readiness},
                               strategy={"code": self.strategy.code, "version": self.strategy.version,
                                         "params": self.strategy.params, "params_hash": self.strategy.params_hash()},
                               equity_curve=self.equity_curve, trades=self.trades, fills=self.fills,
