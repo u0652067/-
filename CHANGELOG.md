@@ -4,7 +4,7 @@
 - 新增 `aqt/research/`：事件驅動日頻回測引擎、point-in-time DataView、台股成本模型、策略介面與範例（cash / 等權流動性基準 / 均線趨勢動能範例）、績效指標、時間切分、樣本外、Walk-forward、不可竄改紀錄。
 - migration 0004：`backtest_runs`／`backtest_trades` 只能新增；新增 config、params_hash、data_version(_hash)、results_hash、engine_version、執行時間、免責聲明欄位。
 - CLI：`backtest`、`evaluate --mode oos|walk-forward`；`python -m aqt.research.dry_run`（不寫紀錄）。
-- 測試新增 15 項；真實資料乾跑（2024）三個策略結果雜湊可重現。
+- 測試新增 16 項，全部 124 passed；真實資料乾跑（2024）三個策略兩次結果雜湊一致；technical_backtest_ready=false 時引擎拒絕執行。
 - 限制：只做技術面（財報一律拒絕）；不做模擬交易、AI 決策、網站、實盤；回測結果不代表策略有效或可獲利。詳見 `docs/BACKTEST.md`。
 
 ## [0.2.1] — 2026-11-03 — PR #2 收尾
