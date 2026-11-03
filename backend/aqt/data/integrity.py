@@ -20,6 +20,7 @@ from sqlalchemy.engine import Engine
 
 from aqt.config import get_settings
 from aqt.data.backfill import latest_published_revenue_month, status as backfill_status
+from aqt.jobs.runtime import set_state
 
 TABLES = ("securities", "trading_calendar", "raw_payloads", "daily_prices", "market_indices", "corporate_actions",
           "technical_indicators", "institutional_trades", "margin_trades", "valuations", "monthly_revenues",
@@ -128,6 +129,14 @@ def run_integrity_check(engine: Engine, start: date = date(2019, 1, 1), end: dat
                                          "GROUP BY 1,2,3,4 ORDER BY 1,2,3")
     rep["backfill"] = backfill_status(engine)
     rep["verdict"] = _verdict(rep)
+    v = rep["verdict"]
+    # persisted for /api/health: the two readiness flags are always reported separately
+    set_state(engine, "data_readiness", {
+        "technical_backtest_ready": v["technical_backtest_ready"],
+        "fundamental_backtest_ready": v["fundamental_backtest_ready"],
+        "fundamental_not_ready_reason": v["fundamental_not_ready_reason"],
+        "coverage_complete": v["coverage"]["complete"], "quality_status": v["quality"]["status"],
+        "window": rep["window"], "checked_at": rep["generated_at"]})
     out_dir = out_dir or (os.path.join(get_settings().report_dir, "integrity") if get_settings().report_dir else None)
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)

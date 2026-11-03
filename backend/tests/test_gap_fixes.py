@@ -274,6 +274,9 @@ def test_integrity_reports_coverage_and_quality_separately(engine, fetcher, synt
     v = run_integrity_check(engine, m.dates[0], m.dates[9], str(tmp_path), sha_sample=10)["verdict"]
     assert v["quality"]["status"] == "REVIEWED_WITH_EXCLUSIONS" and v["quality"]["blocking_backtest"] == 1
     assert v["quality"]["unclassified"] == 0
+    from aqt.jobs.runtime import get_state
+    st = get_state(engine, "data_readiness")
+    assert set(st) >= {"technical_backtest_ready", "fundamental_backtest_ready"} and "backtest_ready" not in st
     md = open(rep["saved_to"].replace(".json", ".md"), encoding="utf-8").read()
     assert "覆蓋完整度" in md and "資料品質狀態" in md and "Complete:" not in md
 
