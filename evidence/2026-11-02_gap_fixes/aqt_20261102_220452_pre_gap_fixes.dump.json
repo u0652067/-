@@ -1,0 +1,40 @@
+﻿{
+    "file":  "aqt_20261102_220452_pre_gap_fixes.dump",
+    "created_at":  "2026-11-02T22:12:12.2651646+08:00",
+    "bytes":  1508471112,
+    "sha256":  "f89c26b066289ff186c97aba693a44187658c78fce03fabfd530858660d8f5a2",
+    "row_counts":  {
+                       "trading_calendar":  4090,
+                       "job_runs":  2064,
+                       "corporate_actions":  8788,
+                       "raw_payloads":  15729,
+                       "securities":  55054,
+                       "monthly_revenues":  163697,
+                       "market_indices":  404698,
+                       "valuations":  3410130,
+                       "technical_indicators":  3951262,
+                       "margin_trades":  3621536,
+                       "institutional_trades":  3563322,
+                       "daily_prices":  4014475
+                   },
+    "verified_restore":  {
+                             "ok":  true,
+                             "restored_counts":  {
+                                                     "job_runs":  2064,
+                                                     "trading_calendar":  4090,
+                                                     "corporate_actions":  8788,
+                                                     "raw_payloads":  15729,
+                                                     "securities":  55054,
+                                                     "monthly_revenues":  163697,
+                                                     "market_indices":  404698,
+                                                     "valuations":  3410130,
+                                                     "daily_prices":  4014475,
+                                                     "technical_indicators":  3951262,
+                                                     "margin_trades":  3621536,
+                                                     "institutional_trades":  3563322
+                                                 },
+                             "differs":  [
+
+                                         ]
+                         }
+}

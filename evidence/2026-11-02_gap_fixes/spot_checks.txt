@@ -1,0 +1,11 @@
+UNIVERSE 2020-03-19 eligible 707 {'not_common_stock': 285, 'illiquid': 559, 'price_below_min': 341, 'disposition': 34, 'altered_trading_full_delivery': 52, 'no_trade_today': 26, 'insufficient_history': 8}
+UNIVERSE 2024-07-26 eligible 1245 {'not_common_stock': 337, 'illiquid': 506, 'insufficient_history': 18, 'disposition': 15, 'price_below_min': 12, 'altered_trading_full_delivery': 31, 'no_trade_today': 15}
+UNIVERSE 2026-10-30 eligible 1018 {'not_common_stock': 431, 'illiquid': 828, 'price_below_min': 60, 'disposition': 12, 'insufficient_history': 17, 'no_trade_today': 32, 'altered_trading_full_delivery': 23}
+ACTIONS 3293 [(datetime.date(2026, 7, 8), 'DIV', Decimal('770.0000'), Decimal('734.0000')), (datetime.date(2025, 7, 17), 'DIV', Decimal('817.0000'), Decimal('788.0000')), (datetime.date(2024, 7, 24), 'DIV_RIGHTS', Decimal('1465.0000'), Decimal('715.0000'))]
+PRICES 3293 [('2024-07-22', '1410.0000', '1455.0000', '0.448723'), ('2024-07-23', '1465.0000', '1410.0000', '0.448723'), ('2024-07-26', '786.0000', '715.0000', '0.919411')]
+ACTIONS 6488 [(datetime.date(2026, 7, 16), 'DIV', Decimal('1480.0000'), Decimal('1474.3000')), (datetime.date(2025, 12, 31), 'DIV', Decimal('413.0000'), Decimal('411.0000')), (datetime.date(2025, 7, 16), 'DIV', Decimal('310.0000'), Decimal('304.0000'))]
+ACTIONS 3064 [(datetime.date(2024, 2, 5), 'CAPITAL_REDUCTION', Decimal('10.6500'), Decimal('35.5000')), (datetime.date(2020, 9, 30), 'CAPITAL_REDUCTION', Decimal('12.2000'), Decimal('38.3700'))]
+PRICES 3064 [('2024-02-05', '32.2000', '35.5000', '1.000000')]
+FIN 2330 (2024, 2) 1266154378 18.2500 STATUTORY_DEADLINE None False
+FIN 2330 (2019, 1) 218704469 2.3700 DOC_UPLOAD_TIME 2019-05-15 13:41:47+08:00 True
+PIT 2024-08-01 latest 2330 [(2022, 4, '2023-02-24 14:49:57+08:00')]

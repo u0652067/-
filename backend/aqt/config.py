@@ -35,6 +35,14 @@ class Settings(BaseSettings):
 
     timezone: str = "Asia/Taipei"
 
+    # Local persistent deployment (bind-mounted volumes; unset = disabled)
+    raw_archive_dir: str | None = None  # also mirror every raw response as a .gz file here
+    log_dir: str | None = None  # rotating log file per CLI command
+    report_dir: str | None = None  # health-check / integrity / backfill reports (JSON + Markdown)
+    # Full backfill: pause this long when a source shows its security-notice page, then retry the day
+    backfill_block_cooldown_seconds: float = 900.0
+    backfill_block_max_retries: int = 3
+
 
 @lru_cache
 def get_settings() -> Settings:

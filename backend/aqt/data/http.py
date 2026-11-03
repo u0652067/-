@@ -3,6 +3,7 @@ import gzip
 import hashlib
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -65,13 +66,16 @@ class Fetcher:
         self._last_hit[host] = time.monotonic()
 
     def get(self, source: str, dataset: str, url: str, params: dict | None = None,
-            data_date: date | None = None) -> FetchResult:
+            data_date: date | None = None, form: dict | None = None) -> FetchResult:
+        """GET, or POST with `form` (url-encoded body) — MOPS summary reports only answer POST.
+        The archived `params` include the form so the request can be replayed."""
         host = urlparse(url).netloc
         last_exc: Exception | None = None
         for attempt in range(self.settings.http_max_retries):
             self._throttle(host)
             try:
-                resp = self.client.get(url, params=params)
+                resp = (self.client.post(url, params=params, data=form) if form is not None
+                        else self.client.get(url, params=params))
             except httpx.ProxyError as e:  # egress policy denial
                 raise SourceBlockedError(f"{host}: proxy refused connection ({e})") from e
             except (httpx.TimeoutException, httpx.TransportError) as e:
@@ -89,7 +93,8 @@ class Fetcher:
                 self._sleep(2 ** attempt * 5)
                 continue
             fetched_at = datetime.now(timezone.utc)
-            raw_id = self._archive(source, dataset, str(resp.url), params or {}, data_date,
+            archived = dict(params or {}, **({"_form": form} if form is not None else {}))
+            raw_id = self._archive(source, dataset, str(resp.url), archived, data_date,
                                    resp.status_code, resp.content, fetched_at)
             if resp.status_code != 200:
                 raise FetchError(f"{host}: HTTP {resp.status_code}")
@@ -99,16 +104,33 @@ class Fetcher:
     def _archive(self, source, dataset, url, params, data_date, status, content, fetched_at) -> int | None:
         if not self.archive or self.engine is None:
             return None
+        sha, gz = hashlib.sha256(content).hexdigest(), gzip.compress(content)
         with session_scope(self.engine) as s:
             row = RawPayload(source=source, dataset=dataset, url=url, params=params, data_date=data_date,
-                             fetched_at=fetched_at, http_status=status,
-                             sha256=hashlib.sha256(content).hexdigest(), content_gz=gzip.compress(content))
+                             fetched_at=fetched_at, http_status=status, sha256=sha, content_gz=gz)
             s.add(row)
             s.flush()
-            return row.id
+            raw_id = row.id
+        if self.settings.raw_archive_dir:
+            _mirror_to_disk(self.settings.raw_archive_dir, raw_id, source, dataset, data_date, fetched_at, sha, gz)
+        return raw_id
 
     def close(self) -> None:
         self.client.close()
+
+
+def _mirror_to_disk(root, raw_id, source, dataset, data_date, fetched_at, sha256, content_gz) -> None:
+    """Second copy of the raw response outside the database (survives a DB restore to an older dump).
+    A disk problem must never fail ingestion: the database copy is authoritative."""
+    d = data_date or fetched_at.date()
+    path = os.path.join(root, source, dataset, f"{d:%Y}")
+    try:
+        os.makedirs(path, exist_ok=True)
+        name = f"{d:%Y%m%d}_{fetched_at:%Y%m%dT%H%M%SZ}_{raw_id}_{sha256[:12]}.gz"
+        with open(os.path.join(path, name), "wb") as fh:
+            fh.write(content_gz)
+    except OSError as e:
+        log.warning("raw mirror write failed (%s): %s", path, e)
 
 
 def mark_parsed(engine: Engine, raw_id: int | None, status: str, error: str | None = None) -> None:

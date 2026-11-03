@@ -19,6 +19,7 @@ AI 台股量化研究與**模擬**交易系統：自主掃描上市櫃股票、�
 - **不得刪除失敗交易、不得只統計成功案例、不得忽略成本與滑價。**
 - **倖存者偏差：** 歷史資料按日期回補（不是按今天的股票清單），下市股票保留（`securities.status=DELISTED`，絕不刪除）。
 - **策略版本不可改：** `strategy_versions.params` 寫入後不可修改，只能新增版本；晉級需走 回測→樣本外→Walk-forward→模擬→穩定性。
+- **可交易性一致套用：** 選股、訊號、回測、模擬交易一律從 `build_universe()` / `tradability.blocked_securities()` 取得候選（排除處置、全額交割、分盤、管理、停止／暫停交易、未解釋價格異常）；基本面一律經 `fundamentals.latest_statements_as_of()`（只回傳有可靠公告時間的財報）。
 - **資料異常 → 安全模式。** 行情抓取失敗或資料不完整時 `system_state.safe_mode.on=true`，交易引擎必須拒絕新開倉。
 - **不得宣稱即時行情。** 目前沒有授權即時行情來源；盤中資料（TWSE MIS）是延遲快照，必須顯示 `delay_seconds`。
 - **金鑰只用環境變數**（`.env`，見 `.env.example`），不得寫死、不得提交。

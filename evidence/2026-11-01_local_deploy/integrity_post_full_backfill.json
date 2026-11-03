@@ -1,0 +1,551 @@
+{
+ "generated_at": "2026-11-02T12:56:31+00:00",
+ "window": "2019-01-01..2026-10-31",
+ "table_rows": {
+  "securities": 55054,
+  "trading_calendar": 4090,
+  "raw_payloads": 15729,
+  "daily_prices": 4014475,
+  "market_indices": 404698,
+  "corporate_actions": 8788,
+  "technical_indicators": 3951262,
+  "institutional_trades": 3563322,
+  "margin_trades": 3621536,
+  "valuations": 3410130,
+  "monthly_revenues": 163697,
+  "financial_statements": 84,
+  "data_quality_issues": 5822,
+  "data_source_status": 17,
+  "job_runs": 2064,
+  "system_logs": 107,
+  "notifications": 0
+ },
+ "securities": [
+  {
+   "market": "TPEX",
+   "security_type": "ETF",
+   "status": "ACTIVE",
+   "n": 119
+  },
+  {
+   "market": "TPEX",
+   "security_type": "ETF",
+   "status": "DELISTED",
+   "n": 35
+  },
+  {
+   "market": "TPEX",
+   "security_type": "OTHER",
+   "status": "ACTIVE",
+   "n": 12723
+  },
+  {
+   "market": "TPEX",
+   "security_type": "STOCK",
+   "status": "ACTIVE",
+   "n": 897
+  },
+  {
+   "market": "TPEX",
+   "security_type": "STOCK",
+   "status": "DELISTED",
+   "n": 67
+  },
+  {
+   "market": "TWSE",
+   "security_type": "ETF",
+   "status": "ACTIVE",
+   "n": 245
+  },
+  {
+   "market": "TWSE",
+   "security_type": "ETF",
+   "status": "DELISTED",
+   "n": 23
+  },
+  {
+   "market": "TWSE",
+   "security_type": "OTHER",
+   "status": "ACTIVE",
+   "n": 39811
+  },
+  {
+   "market": "TWSE",
+   "security_type": "STOCK",
+   "status": "ACTIVE",
+   "n": 1089
+  },
+  {
+   "market": "TWSE",
+   "security_type": "STOCK",
+   "status": "DELISTED",
+   "n": 45
+  }
+ ],
+ "quotes_by_year": [
+  {
+   "market": "TPEX",
+   "year": 2019,
+   "known_trading_days": 242,
+   "days_with_quotes": 242,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TPEX",
+   "year": 2020,
+   "known_trading_days": 245,
+   "days_with_quotes": 245,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TPEX",
+   "year": 2021,
+   "known_trading_days": 244,
+   "days_with_quotes": 244,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TPEX",
+   "year": 2022,
+   "known_trading_days": 246,
+   "days_with_quotes": 246,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TPEX",
+   "year": 2023,
+   "known_trading_days": 239,
+   "days_with_quotes": 239,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TPEX",
+   "year": 2024,
+   "known_trading_days": 242,
+   "days_with_quotes": 242,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TPEX",
+   "year": 2025,
+   "known_trading_days": 243,
+   "days_with_quotes": 243,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TPEX",
+   "year": 2026,
+   "known_trading_days": 198,
+   "days_with_quotes": 198,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TWSE",
+   "year": 2019,
+   "known_trading_days": 242,
+   "days_with_quotes": 242,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TWSE",
+   "year": 2020,
+   "known_trading_days": 245,
+   "days_with_quotes": 245,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TWSE",
+   "year": 2021,
+   "known_trading_days": 244,
+   "days_with_quotes": 244,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TWSE",
+   "year": 2022,
+   "known_trading_days": 246,
+   "days_with_quotes": 246,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TWSE",
+   "year": 2023,
+   "known_trading_days": 239,
+   "days_with_quotes": 239,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TWSE",
+   "year": 2024,
+   "known_trading_days": 242,
+   "days_with_quotes": 242,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TWSE",
+   "year": 2025,
+   "known_trading_days": 243,
+   "days_with_quotes": 243,
+   "days_missing_quotes": 0
+  },
+  {
+   "market": "TWSE",
+   "year": 2026,
+   "known_trading_days": 198,
+   "days_with_quotes": 198,
+   "days_missing_quotes": 0
+  }
+ ],
+ "missing_quote_days": [],
+ "unknown_weekdays": [],
+ "secondary_gaps": {
+  "institutional": [],
+  "margin": [],
+  "valuation": []
+ },
+ "revenue_months": [
+  {
+   "market": "TPEX",
+   "months_expected": 93,
+   "months_ok": 93,
+   "months_missing_or_few": null
+  },
+  {
+   "market": "TWSE",
+   "months_expected": 93,
+   "months_ok": 93,
+   "months_missing_or_few": null
+  }
+ ],
+ "raw_payloads": {
+  "by_parse_status": [
+   {
+    "source": "mops",
+    "dataset": "balance_tpex",
+    "parse_status": "OK",
+    "n": 1
+   },
+   {
+    "source": "mops",
+    "dataset": "balance_twse",
+    "parse_status": "OK",
+    "n": 1
+   },
+   {
+    "source": "mops",
+    "dataset": "income_tpex",
+    "parse_status": "OK",
+    "n": 1
+   },
+   {
+    "source": "mops",
+    "dataset": "income_twse",
+    "parse_status": "OK",
+    "n": 1
+   },
+   {
+    "source": "mops",
+    "dataset": "revenue_hist_tpex",
+    "parse_status": "OK",
+    "n": 93
+   },
+   {
+    "source": "mops",
+    "dataset": "revenue_hist_twse",
+    "parse_status": "OK",
+    "n": 93
+   },
+   {
+    "source": "mops",
+    "dataset": "revenue_tpex",
+    "parse_status": "OK",
+    "n": 1
+   },
+   {
+    "source": "mops",
+    "dataset": "revenue_twse",
+    "parse_status": "OK",
+    "n": 1
+   },
+   {
+    "source": "tpex",
+    "dataset": "tpex_institutional",
+    "parse_status": "OK",
+    "n": 1900
+   },
+   {
+    "source": "tpex",
+    "dataset": "tpex_margin",
+    "parse_status": "EMPTY",
+    "n": 1
+   },
+   {
+    "source": "tpex",
+    "dataset": "tpex_margin",
+    "parse_status": "OK",
+    "n": 1899
+   },
+   {
+    "source": "tpex",
+    "dataset": "tpex_quotes",
+    "parse_status": "EMPTY",
+    "n": 145
+   },
+   {
+    "source": "tpex",
+    "dataset": "tpex_quotes",
+    "parse_status": "OK",
+    "n": 1900
+   },
+   {
+    "source": "tpex",
+    "dataset": "tpex_valuation",
+    "parse_status": "OK",
+    "n": 1900
+   },
+   {
+    "source": "twse",
+    "dataset": "twse_ex_rights",
+    "parse_status": "EMPTY",
+    "n": 2
+   },
+   {
+    "source": "twse",
+    "dataset": "twse_ex_rights",
+    "parse_status": "OK",
+    "n": 39
+   },
+   {
+    "source": "twse",
+    "dataset": "twse_institutional",
+    "parse_status": "OK",
+    "n": 1900
+   },
+   {
+    "source": "twse",
+    "dataset": "twse_margin",
+    "parse_status": "EMPTY",
+    "n": 1
+   },
+   {
+    "source": "twse",
+    "dataset": "twse_margin",
+    "parse_status": "OK",
+    "n": 1899
+   },
+   {
+    "source": "twse",
+    "dataset": "twse_quotes",
+    "parse_status": "EMPTY",
+    "n": 145
+   },
+   {
+    "source": "twse",
+    "dataset": "twse_quotes",
+    "parse_status": "OK",
+    "n": 1900
+   },
+   {
+    "source": "twse",
+    "dataset": "twse_valuation",
+    "parse_status": "OK",
+    "n": 1900
+   },
+   {
+    "source": "twse_isin",
+    "dataset": "isin_tpex",
+    "parse_status": "OK",
+    "n": 3
+   },
+   {
+    "source": "twse_isin",
+    "dataset": "isin_twse",
+    "parse_status": "OK",
+    "n": 3
+   }
+  ],
+  "non_200": 0,
+  "parse_errors_sample": [],
+  "sha256_sample": {
+   "checked": 200,
+   "mismatch": 0
+  }
+ },
+ "quality_issues": [
+  {
+   "check_name": "volume_without_close",
+   "severity": "ERROR",
+   "n": 4865
+  },
+  {
+   "check_name": "move_exceeds_limit",
+   "severity": "WARN",
+   "n": 957
+  }
+ ],
+ "source_status": [
+  {
+   "source": "mops",
+   "dataset": "balance_tpex",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": null,
+   "last_error": null
+  },
+  {
+   "source": "mops",
+   "dataset": "balance_twse",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": null,
+   "last_error": null
+  },
+  {
+   "source": "mops",
+   "dataset": "income_tpex",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": null,
+   "last_error": null
+  },
+  {
+   "source": "mops",
+   "dataset": "income_twse",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": null,
+   "last_error": null
+  },
+  {
+   "source": "mops",
+   "dataset": "revenue_tpex",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": null,
+   "last_error": null
+  },
+  {
+   "source": "mops",
+   "dataset": "revenue_twse",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": null,
+   "last_error": null
+  },
+  {
+   "source": "tpex",
+   "dataset": "tpex_institutional",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  },
+  {
+   "source": "tpex",
+   "dataset": "tpex_margin",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-10-30",
+   "last_error": null
+  },
+  {
+   "source": "tpex",
+   "dataset": "tpex_quotes",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  },
+  {
+   "source": "tpex",
+   "dataset": "tpex_valuation",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  },
+  {
+   "source": "twse",
+   "dataset": "twse_ex_rights",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  },
+  {
+   "source": "twse",
+   "dataset": "twse_institutional",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  },
+  {
+   "source": "twse",
+   "dataset": "twse_margin",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-10-30",
+   "last_error": null
+  },
+  {
+   "source": "twse",
+   "dataset": "twse_quotes",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  },
+  {
+   "source": "twse",
+   "dataset": "twse_valuation",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  },
+  {
+   "source": "twse_isin",
+   "dataset": "isin_tpex",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  },
+  {
+   "source": "twse_isin",
+   "dataset": "isin_twse",
+   "status": "OK",
+   "consecutive_failures": 0,
+   "latest_data_date": "2026-11-02",
+   "last_error": null
+  }
+ ],
+ "rerunnable_days": [],
+ "safe_mode": null,
+ "backfill": {
+  "status": "DONE",
+  "phase": null,
+  "window": "2019-01-01..2026-10-31",
+  "current_day": "2026-10-30",
+  "days_done": 2044,
+  "days_total": 2044,
+  "eta_utc": null,
+  "note": "indicators through 2026-10-31 (3948909 rows)",
+  "months_by_status": {
+   "DONE": 94
+  },
+  "missing_day_counts": {},
+  "failed_days": 0,
+  "revenue_months_done": 186,
+  "revenue_months_not_done": {},
+  "corporate_action_chunks_failed": {},
+  "blocked_events": 0,
+  "updated_at": "2026-11-02T02:47:33+00:00",
+  "interrupted_reason": null
+ },
+ "verdict": {
+  "complete": true,
+  "problems": []
+ }
+}

@@ -1,5 +1,57 @@
 # CHANGELOG
 
+## [0.2.1] — 2026-11-03 — PR #2 收尾
+- G7 財報公告時間回補完成：15,374/15,374；54,729 筆可靠、618 筆查無公告時間（永久排除）。
+- integrity 與 `/api/health` 改為分開呈現 `technical_backtest_ready`、`fundamental_backtest_ready`（不再有單一 backtest_ready）；狀態存於 `system_state.data_readiness`。
+- 每日流程結束時同步分類已知品質問題（避免新日期出現未分類問題）。
+- 最終驗證：測試 108 passed；integrity coverage COMPLETE、quality REVIEWED_WITH_EXCLUSIONS（未分類 0）、technical_backtest_ready=true、fundamental_backtest_ready=false；G13 抽驗 25/25 相符；健康檢查 27/28（MIS 盤後逾時）。
+
+## [0.2.0] — 2026-11-03 — PHASE 1 驗收缺口修正（PR，待審；未進入 PHASE 2）
+- **G4/G8** 新來源 `sources/corporate_events.py`：TPEx 除權息（exDailyQ）、上市/上櫃減資（TWTAUU / revivt）、上市/上櫃面額變更（TWTB8U / pvChgRslt）、上市 ETF 分割（TWTCAU）。還原因子＝參考價/前收，對所有事件一致；除權息日遇休市（颱風）套用到下一交易日。
+- **G6** 新來源 `sources/restrictions.py` 與資料表 `trading_restrictions`：處置（區間）、變更交易/全額交割（每日）、分盤、管理股票、停止交易、暫停交易。`tradability.blocked_securities()` 由 `build_universe()` 呼叫；每日排程同步更新。
+- **G7** `sources/mops_history.py`：MOPS 彙總損益表/資產負債表（各產業模板）＋證交所電子文件上傳時間；`financial_statements` 新增 `published_at`、`published_basis`、`pit_reliable`；`fundamentals.latest_statements_as_of()` 只回傳可靠公告時間且已公告者。
+- **G13** `quality_review.py`：957 筆全數分類；未解釋者升為 ERROR 並阻擋回測 120 天；以個股月報表獨立抽驗。
+- **integrity** 拆成「覆蓋完整度」「資料品質狀態」「backtest_ready」。
+- migration 0003（`corporate_actions.action_type` 加長、`trading_restrictions`、財報公告欄位、品質分類欄位）；套用前做驗證備份 `pre_gap_fixes`。
+- `Fetcher` 支援 POST（MOPS）；新增 CLI `review-quality`；`backfill-full` 新增 phases：corporate_events、restrictions、financials、financial_pubdates、quality_review。
+- 測試 107 passed；A7 真實中斷續傳通過；健康檢查 28/28 OK。證據：`evidence/2026-11-02_gap_fixes/`。
+
+## [0.1.5] — 2026-11-02 — 2019 起全量回補完成
+- `backfill-full` 2019-01-01～2026-10-31：2026-11-01 20:00 → 11-02 10:47（台北），2,044 平日、94 個月全部 DONE、0 失敗、0 次安全警示；MOPS 歷史月營收 186 個市場月全部完成；技術指標 3,948,909 列。
+- 完整性報告（`evidence/2026-11-01_local_deploy/integrity_post_full_backfill.md`）：Complete=True。daily_prices 4,014,475、institutional_trades 3,563,322、margin_trades 3,621,536、valuations 3,410,130、monthly_revenues 163,697、corporate_actions 8,788、raw_payloads 15,729；資料庫 5.3 GB、原始回應檔 479 MB。
+- 品質檢查：`volume_without_close` 4,865（ERROR，當日不可交易，屬正確）、`move_exceeds_limit` 957（WARN，新增缺口 G13）。
+- PHASE 1 仍為條件式驗收（G3–G13）；未進入 PHASE 2，等待使用者驗收。
+
+## [0.1.4] — 2026-11-01 — 本機部署實際執行
+- 安裝 Git 2.56、Docker Desktop 4.97（Engine 29.9.2）；本機資料夾接回 GitHub（分支 `claude/local-deploy-phase1`，基於 `claude/project-thread-fe2thb` d2e0123）。
+- 修正 `.gitignore`：`data/` 會誤忽略 `backend/aqt/data/`，改為只忽略根目錄 `/data/`、`/backups/`；`log_event` 的 WARN 改用 `logging.warning`。
+- 實際執行（證據 `evidence/2026-11-01_local_deploy/`）：測試 97 passed；健康檢查 28/28 OK；ISIN 證券主檔同步成功（上市 41,119、上櫃 13,723 筆，含 ISIN 碼）；`stop.ps1 -Remove` 後重建資料一致；`backup.ps1 -Verify` 與 `restore.ps1` 還原比對一致；smoke 回補 2019-01-02～01-11 完整（行情/法人/融資券/本益比/月營收 0 缺口）；pre_backfill 驗證備份（8.1 MB）與完整性基準報告後，啟動 2019-01-01～2026-10-31 全量回補（2,044 個平日）。
+- PHASE 1 仍為條件式驗收；未進入 PHASE 2。
+
+## [0.1.3] — 2026-10-31 — 本機持久化部署與 PHASE 1 收尾（條件式驗收）
+
+### 1. 完成項目
+- 長期主機決定為使用者 Windows 電腦（台灣家用 IP）。雲端資料庫不再視為正式資料。
+- `docker-compose.yml`：專案名 `aqt`；PostgreSQL 用 external volume `aqt_pgdata`（`down -v` 也不會刪）；原始回應副本 `data/raw`、日誌 `data/logs`、報告 `data/reports`、備份 `backups` 綁定到專案資料夾；`backfill`（可續傳、`restart: on-failure`）與 `test`（tmpfs 拋棄式資料庫）兩個 profile。
+- `scripts/`：`start.ps1`（首次自動產生 `.env` 隨機密碼、建立 volume、等 API 就緒）、`stop.ps1`、`backup.ps1`（pg_dump + sha256 + 筆數清單，`-Verify` 還原比對）、`restore.ps1`（sha256 檢查、先做安全備份、需 `-Force`）、`health.ps1`、`backfill.ps1`（smoke / start / status / stop / report / logs）、`test.ps1`。
+- 新指令：`health-check`（逐端點傳輸層證據，不重試）、`backfill-full`（進度存 `system_state`、中斷續傳、被擋冷卻重試、ETA、MOPS 歷史月營收階段、分季重算指標）、`backfill-status`、`integrity-check`（JSON + Markdown）。
+- 原始回應除 DB 外另存 `.gz` 檔（檔名含日期、raw_id、sha256 前 12 碼）；CLI 每個指令寫輪替日誌檔；`SIGTERM` 轉為 `SystemExit` 以保存進度。
+- README 改寫為本機部署手冊；TASKS 列出 PHASE 1 條件式驗收與資料缺口 G1–G12；TEST_PLAN 新增本機驗收條件 A1–A8。
+
+### 2. 實際執行證據（家用 IP，2026-10-31 13:55–13:58 台北）
+- MOPS 歷史月營收 `mopsov.twse.com.tw/nas/t21/{sii,otc}/t21sc03_*`：2019-01、2021-06、2024-12、2026-09 上市/上櫃共 8 頁全部 HTTP 200、無「FOR SECURITY REASONS」，本專案解析器分別解析 889/918/988/997（上市）、748/780/859/867（上櫃）家；原始頁 gzip 與 `mops_probe.json`（sha256、延遲）存於 `evidence/2026-10-31_home_ip/`。
+- 同一網路下 TWSE MI_INDEX/STOCK_DAY、T86 2019-01-02、MI_MARGN 2019-01-02、TPEx、OpenAPI 公司清單、ISIN 一覽表（9.8 MB）皆 HTTP 200。
+
+### 3. 測試結果
+- 新增 `tests/test_local_ops.py` 9 項；Python 與 PowerShell 檔案語法檢查通過。**本機尚無 Docker/PostgreSQL，完整測試尚未執行**（TEST_PLAN A1）。
+
+### 4. 尚未完成 / 發現的問題
+- 本機未安裝 Docker Desktop、WSL2、Git → 容器、回補、備份尚未實際執行；本次變更尚未 commit/push。
+- 資料缺口見 TASKS.md「尚未解決的資料缺口」G1–G12。
+
+### 5. 下一步
+- 使用者安裝 Docker Desktop 後依 TASKS 下一步 6–7 執行；**不進入 PHASE 2，等待使用者驗收。**
+
 ## [0.1.2] — 2026-10-31 — PHASE 1 真實來源驗收
 
 ### 1. 完成項目

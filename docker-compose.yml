@@ -1,4 +1,34 @@
-# Long-running deployment: db + api + scheduler worker. SIMULATION ONLY.
+# Local persistent deployment (Windows + Docker Desktop). SIMULATION ONLY.
+#
+# Persistence:
+#   PostgreSQL      -> Docker volume `aqt_pgdata` (external: `docker compose down -v` can NOT remove it;
+#                      created by scripts\start.ps1). Holds prices, raw responses (raw_payloads),
+#                      scheduler/job state (job_runs, system_state), logs table.
+#   ./data/raw      -> second copy of every raw official response (.gz files)
+#   ./data/logs     -> rotating log file per command (api.log, scheduler.log, backfill-full.log ...)
+#   ./data/reports  -> health-check / integrity reports (JSON + Markdown)
+#   ./backups       -> pg_dump files made by scripts\backup.ps1
+# Rebuilding or removing containers never touches any of these.
+name: aqt
+
+x-app: &app
+  build: ./backend
+  image: aqt-backend:local
+  env_file: .env
+  environment: &app-env
+    AQT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aqt}:${POSTGRES_PASSWORD}@db:5432/aqt
+    AQT_RAW_ARCHIVE_DIR: /data/raw
+    AQT_LOG_DIR: /data/logs
+    AQT_REPORT_DIR: /data/reports
+    TZ: Asia/Taipei
+  volumes:
+    - ./data/raw:/data/raw
+    - ./data/logs:/data/logs
+    - ./data/reports:/data/reports
+  logging: &logging
+    driver: json-file
+    options: { max-size: "20m", max-file: "5" }
+
 services:
   db:
     image: postgres:16
@@ -7,39 +37,70 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: aqt
       TZ: Asia/Taipei
-    volumes: [pgdata:/var/lib/postgresql/data]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports: ["127.0.0.1:${AQT_DB_PORT:-5433}:5432"]
+    shm_size: 256m
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aqt}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aqt} -d aqt"]
       interval: 10s
       retries: 10
+    logging: *logging
     restart: unless-stopped
 
   migrate:
-    build: ./backend
-    env_file: .env
-    environment:
-      AQT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aqt}:${POSTGRES_PASSWORD}@db:5432/aqt
+    <<: *app
     command: ["python", "-m", "aqt.cli", "init-db"]
     depends_on: { db: { condition: service_healthy } }
+    restart: "no"
 
   api:
-    build: ./backend
-    env_file: .env
-    environment:
-      AQT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aqt}:${POSTGRES_PASSWORD}@db:5432/aqt
+    <<: *app
     command: ["python", "-m", "aqt.cli", "api", "--port", "8000"]
     ports: ["127.0.0.1:8000:8000"]
     depends_on: { migrate: { condition: service_completed_successfully } }
     restart: unless-stopped
 
   scheduler:
-    build: ./backend
-    env_file: .env
-    environment:
-      AQT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aqt}:${POSTGRES_PASSWORD}@db:5432/aqt
+    <<: *app
     command: ["python", "-m", "aqt.cli", "scheduler"]
     depends_on: { migrate: { condition: service_completed_successfully } }
     restart: unless-stopped
 
+  # Full historical backfill: `scripts\backfill.ps1 start`. Resumable; restarts itself after a crash
+  # or a reboot until it completes, then exits 0 and stays stopped.
+  backfill:
+    <<: *app
+    profiles: ["backfill"]
+    command: ["python", "-m", "aqt.cli", "backfill-full", "--start", "${AQT_BACKFILL_START:-2019-01-01}"]
+    depends_on: { migrate: { condition: service_completed_successfully } }
+    stop_grace_period: 60s
+    restart: on-failure
+
+  # Throwaway database for the automated tests (`scripts\test.ps1`). Never the real data.
+  testdb:
+    image: postgres:16
+    profiles: ["test"]
+    environment: { POSTGRES_PASSWORD: test, POSTGRES_DB: aqt_test }
+    tmpfs: ["/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aqt_test"]
+      interval: 3s
+      retries: 20
+
+  test:
+    <<: *app
+    profiles: ["test"]
+    environment:
+      AQT_TEST_DATABASE_URL: postgresql+psycopg://postgres:test@testdb:5432/aqt_test
+      AQT_DATABASE_URL: postgresql+psycopg://postgres:test@testdb:5432/aqt_test
+    volumes: []
+    command: ["python", "-m", "pytest", "-q"]
+    depends_on: { testdb: { condition: service_healthy } }
+    restart: "no"
+
 volumes:
   pgdata:
+    external: true
+    name: aqt_pgdata

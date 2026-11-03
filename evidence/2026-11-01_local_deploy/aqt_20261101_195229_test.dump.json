@@ -1,0 +1,40 @@
+﻿{
+    "file":  "aqt_20261101_195229_test.dump",
+    "created_at":  "2026-11-01T19:52:31.8222619+08:00",
+    "bytes":  4788969,
+    "sha256":  "55deb4b33ee8707a194d4303c2d7b80603558fbafb1571cb8faffbda7f5c9243",
+    "row_counts":  {
+                       "raw_payloads":  53,
+                       "trading_calendar":  14,
+                       "job_runs":  8,
+                       "corporate_actions":  9,
+                       "monthly_revenues":  0,
+                       "market_indices":  1335,
+                       "valuations":  9895,
+                       "technical_indicators":  11819,
+                       "margin_trades":  11111,
+                       "institutional_trades":  11220,
+                       "daily_prices":  12024,
+                       "securities":  54842
+                   },
+    "verified_restore":  {
+                             "ok":  true,
+                             "restored_counts":  {
+                                                     "job_runs":  8,
+                                                     "corporate_actions":  9,
+                                                     "trading_calendar":  14,
+                                                     "raw_payloads":  53,
+                                                     "monthly_revenues":  0,
+                                                     "market_indices":  1335,
+                                                     "valuations":  9895,
+                                                     "technical_indicators":  11819,
+                                                     "institutional_trades":  11220,
+                                                     "margin_trades":  11111,
+                                                     "daily_prices":  12024,
+                                                     "securities":  54842
+                                                 },
+                             "differs":  [
+
+                                         ]
+                         }
+}

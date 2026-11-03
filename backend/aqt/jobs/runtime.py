@@ -100,7 +100,7 @@ def record_source(engine: Engine, source: str, dataset: str, ok: bool, error: st
 
 
 def log_event(engine: Engine, level: str, component: str, message: str, detail: dict | None = None) -> None:
-    getattr(log, level.lower(), log.info)(f"[{component}] {message}")
+    getattr(log, {"WARN": "warning"}.get(level, level.lower()), log.info)(f"[{component}] {message}")
     with session_scope(engine) as s:
         s.add(SystemLog(level=level, component=component, message=message[:4000], detail=detail or {}))
 
