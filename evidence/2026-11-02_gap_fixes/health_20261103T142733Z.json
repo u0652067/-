@@ -1,0 +1,582 @@
+{
+ "started_at": "2026-11-03T14:27:33.621673+00:00",
+ "probe_date": "2026-11-02",
+ "history_probe_date": "2019-01-02",
+ "user_agent": "ai-quant-trader/0.1 (research; simulation only)",
+ "results": {
+  "twse_quotes": {
+   "url": "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX",
+   "params": {
+    "date": "20261102",
+    "type": "ALLBUT0999",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date=20261102&type=ALLBUT0999&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 247269,
+   "sha256": "cbc2b3de76acfd089d340709c3c347fb818776591806919722a93e9abcd9607d",
+   "latency_ms": 106,
+   "security_notice": false,
+   "records": 1389,
+   "note": null,
+   "sample": "PriceRecord(code='00400A', name='主動國泰動能高息', market='TWSE', trade_date=datetime.date(2026, 11, 2), open=Decimal('13.60'), high=Decimal('13.88'), low=Decimal('13.53'), close=Decimal('13.79'), change=Dec",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_institutional": {
+   "url": "https://www.twse.com.tw/rwd/zh/fund/T86",
+   "params": {
+    "date": "20261102",
+    "selectType": "ALLBUT0999",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/fund/T86?date=20261102&selectType=ALLBUT0999&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 193517,
+   "sha256": "9628790664e931b7159caa63927d693c0afa752eca309c3ec63711b8582c1211",
+   "latency_ms": 73,
+   "security_notice": false,
+   "records": 1343,
+   "note": null,
+   "sample": "InstitutionalRecord(code='00632R', name='元大台灣50反1', trade_date=datetime.date(2026, 11, 2), foreign_buy=2994000, foreign_sell=2322000, foreign_net=672000, foreign_dealer_net=0, trust_buy=0, trust_sell=",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_margin": {
+   "url": "https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN",
+   "params": {
+    "date": "20261102",
+    "selectType": "ALL",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN?date=20261102&selectType=ALL&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 129185,
+   "sha256": "7c020dfb4d264a9d17eed326b21e9c7a9069c31be9603885ec49f3b1fb7c4747",
+   "latency_ms": 94,
+   "security_notice": false,
+   "records": 1305,
+   "note": null,
+   "sample": "MarginRecord(code='00400A', name='主動國泰動能高息', trade_date=datetime.date(2026, 11, 2), margin_buy=493, margin_sell=196, margin_redeem=8, margin_balance_prev=14038, margin_balance=14327, margin_limit=5491",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_valuation": {
+   "url": "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d",
+   "params": {
+    "date": "20261102",
+    "selectType": "ALL",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d?date=20261102&selectType=ALL&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 66713,
+   "sha256": "f71d4b04263639090afe35fbb27f0fbd54bc2aab24d3dceeed297ff4bb8d694e",
+   "latency_ms": 62,
+   "security_notice": false,
+   "records": 1088,
+   "note": null,
+   "sample": "ValuationRecord(code='1101', name='台泥', trade_date=datetime.date(2026, 11, 2), pe_ratio=None, pb_ratio=Decimal('0.91'), dividend_yield=Decimal('2.85'))",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_ex_rights": {
+   "url": "https://www.twse.com.tw/rwd/zh/exRight/TWT49U",
+   "params": {
+    "startDate": "20261003",
+    "endDate": "20261102",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/exRight/TWT49U?startDate=20261003&endDate=20261102&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 13785,
+   "sha256": "fb33443b929baaa47f5a2c8600edfb9848ccdefed4addc2f7e68fe7f3e17d1f5",
+   "latency_ms": 75,
+   "security_notice": false,
+   "records": 66,
+   "note": null,
+   "sample": "CorporateActionRecord(code='00406A', name='主動中信台灣收益', ex_date=datetime.date(2026, 10, 5), action_type='DIV', prev_close=Decimal('10.13'), ref_price=Decimal('9.99'), cash_dividend=Decimal('0.138000'), ",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_holidays": {
+   "url": "https://www.twse.com.tw/rwd/zh/holidaySchedule/holidaySchedule",
+   "params": {
+    "queryYear": "115",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/holidaySchedule/holidaySchedule?queryYear=115&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 2783,
+   "sha256": "7fefe785ea7155a5004a2eb74486ad865ea5c4b5f02ee0cffbbdacb1ca2ea390",
+   "latency_ms": 71,
+   "security_notice": false,
+   "records": 27,
+   "note": null,
+   "sample": "HolidayRecord(cal_date=datetime.date(2026, 1, 1), name='中華民國開國紀念日', is_trading_day=False)",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_quotes_2019": {
+   "url": "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX",
+   "params": {
+    "date": "20190102",
+    "type": "ALLBUT0999",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?date=20190102&type=ALLBUT0999&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 178938,
+   "sha256": "c1fac255216e662cb1395c5c9e335779eadce39369bf720a6a0ac8cceaa112ae",
+   "latency_ms": 65,
+   "security_notice": false,
+   "records": 1075,
+   "note": null,
+   "sample": "PriceRecord(code='0050', name='元大台灣50', market='TWSE', trade_date=datetime.date(2019, 1, 2), open=Decimal('75.85'), high=Decimal('75.90'), low=Decimal('73.95'), close=Decimal('74.05'), change=Decimal(",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_institutional_2019": {
+   "url": "https://www.twse.com.tw/rwd/zh/fund/T86",
+   "params": {
+    "date": "20190102",
+    "selectType": "ALLBUT0999",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/fund/T86?date=20190102&selectType=ALLBUT0999&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 124099,
+   "sha256": "4ce0575f2e61593ef284b48d4a8ab8d334316db06622b8868acd93dc6af32393",
+   "latency_ms": 81,
+   "security_notice": false,
+   "records": 906,
+   "note": null,
+   "sample": "InstitutionalRecord(code='00632R', name='元大台灣50反1', trade_date=datetime.date(2019, 1, 2), foreign_buy=8289000, foreign_sell=2837000, foreign_net=5452000, foreign_dealer_net=0, trust_buy=0, trust_sell=",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_margin_2019": {
+   "url": "https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN",
+   "params": {
+    "date": "20190102",
+    "selectType": "ALL",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN?date=20190102&selectType=ALL&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 101233,
+   "sha256": "1edb73c2ff8ebf8a6fd6e5318058d426f5855779aeaa36e7e21a4fcb56bff0d0",
+   "latency_ms": 145,
+   "security_notice": false,
+   "records": 1027,
+   "note": null,
+   "sample": "MarginRecord(code='0050', name='元大台灣50', trade_date=datetime.date(2019, 1, 2), margin_buy=377, margin_sell=142, margin_redeem=6, margin_balance_prev=3130, margin_balance=3359, margin_limit=235375, sho",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "twse_ex_rights_2019": {
+   "url": "https://www.twse.com.tw/rwd/zh/exRight/TWT49U",
+   "params": {
+    "startDate": "20190102",
+    "endDate": "20190402",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.twse.com.tw/rwd/zh/exRight/TWT49U?startDate=20190102&endDate=20190402&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 5830,
+   "sha256": "995e93e91cb5917d0b4dfcd64a505962186cf45bb497d5bbada7c3a8cdbfe157",
+   "latency_ms": 76,
+   "security_notice": false,
+   "records": 22,
+   "note": null,
+   "sample": "CorporateActionRecord(code='8473', name='山林水', ex_date=datetime.date(2019, 1, 2), action_type='RIGHTS', prev_close=Decimal('56.20'), ref_price=Decimal('56.09'), cash_dividend=None, stock_dividend_rati",
+   "verdict": "OK",
+   "group": "TWSE"
+  },
+  "tpex_quotes": {
+   "url": "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc",
+   "params": {
+    "date": "2026/11/02",
+    "type": "EW",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc?date=2026%2F11%2F02&type=EW&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 146381,
+   "sha256": "9254488946fd477a231c804594c6cee48b3b03df5496248e034951726d3efb90",
+   "latency_ms": 178,
+   "security_notice": false,
+   "records": 1018,
+   "note": null,
+   "sample": "PriceRecord(code='00411A', name='主動統一前沿科技', market='TPEX', trade_date=datetime.date(2026, 11, 2), open=Decimal('9.57'), high=Decimal('9.62'), low=Decimal('9.49'), close=Decimal('9.60'), change=Decimal",
+   "verdict": "OK",
+   "group": "TPEx"
+  },
+  "tpex_institutional": {
+   "url": "https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade",
+   "params": {
+    "type": "Daily",
+    "sect": "EW",
+    "date": "2026/11/02",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade?type=Daily&sect=EW&date=2026%2F11%2F02&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 141252,
+   "sha256": "0c5f25ed0395d188a4e6fa40dea23b00c3b94282d211ff9bcba8cca9bb38cd5e",
+   "latency_ms": 600,
+   "security_notice": false,
+   "records": 884,
+   "note": null,
+   "sample": "InstitutionalRecord(code='00411A', name='主動統一前沿科技', trade_date=datetime.date(2026, 11, 2), foreign_buy=188000, foreign_sell=1220600, foreign_net=-1032600, foreign_dealer_net=0, trust_buy=0, trust_sell",
+   "verdict": "OK",
+   "group": "TPEx"
+  },
+  "tpex_margin": {
+   "url": "https://www.tpex.org.tw/www/zh-tw/margin/balance",
+   "params": {
+    "date": "2026/11/02",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/www/zh-tw/margin/balance?date=2026%2F11%2F02&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 107391,
+   "sha256": "da87c62ba86d4b2c04d37dae38114b7260f41f2fa2e3903868b8010c301fee49",
+   "latency_ms": 167,
+   "security_notice": false,
+   "records": 919,
+   "note": null,
+   "sample": "MarginRecord(code='00411A', name='主動統一前沿科技', trade_date=datetime.date(2026, 11, 2), margin_buy=1480, margin_sell=41, margin_redeem=0, margin_balance_prev=13523, margin_balance=14962, margin_limit=1146",
+   "verdict": "OK",
+   "group": "TPEx"
+  },
+  "tpex_valuation": {
+   "url": "https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryDate",
+   "params": {
+    "date": "2026/11/02",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/www/zh-tw/afterTrading/peQryDate?date=2026%2F11%2F02&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 70476,
+   "sha256": "0280dfba31838ff21a99606a79decaba87d8184aa127705b81ff398496eeda26",
+   "latency_ms": 136,
+   "security_notice": false,
+   "records": 892,
+   "note": null,
+   "sample": "ValuationRecord(code='1240', name='茂生農經', trade_date=datetime.date(2026, 11, 2), pe_ratio=Decimal('10.00'), pb_ratio=Decimal('1.59'), dividend_yield=Decimal('0.93'))",
+   "verdict": "OK",
+   "group": "TPEx"
+  },
+  "tpex_quotes_2019": {
+   "url": "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc",
+   "params": {
+    "date": "2019/01/02",
+    "type": "EW",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/www/zh-tw/afterTrading/otc?date=2019%2F01%2F02&type=EW&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 104097,
+   "sha256": "9ff550a201aad326e0f45f8ab5511035368dc0048c684bde8f5c96e05e5b0283",
+   "latency_ms": 145,
+   "security_notice": false,
+   "records": 803,
+   "note": null,
+   "sample": "PriceRecord(code='00679B', name='元大美債20年', market='TPEX', trade_date=datetime.date(2019, 1, 2), open=Decimal('38.12'), high=Decimal('38.46'), low=Decimal('38.12'), close=Decimal('38.44'), change=Decim",
+   "verdict": "OK",
+   "group": "TPEx"
+  },
+  "tpex_institutional_2019": {
+   "url": "https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade",
+   "params": {
+    "type": "Daily",
+    "sect": "EW",
+    "date": "2019/01/02",
+    "response": "json"
+   },
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade?type=Daily&sect=EW&date=2019%2F01%2F02&response=json",
+   "redirects": [],
+   "content_type": "application/json;charset=UTF-8",
+   "bytes": 61603,
+   "sha256": "a8a0efe0e6fb21b7a0490b3d5bbdf9ec6d685ab6c174d91bf69b1737c041f08a",
+   "latency_ms": 231,
+   "security_notice": false,
+   "records": 408,
+   "note": null,
+   "sample": "InstitutionalRecord(code='006201', name='元大富櫃50', trade_date=datetime.date(2019, 1, 2), foreign_buy=0, foreign_sell=0, foreign_net=0, foreign_dealer_net=0, trust_buy=0, trust_sell=0, trust_net=0, deal",
+   "verdict": "OK",
+   "group": "TPEx"
+  },
+  "companies_twse": {
+   "url": "https://openapi.twse.com.tw/v1/opendata/t187ap03_L",
+   "params": null,
+   "status": 200,
+   "final_url": "https://openapi.twse.com.tw/v1/opendata/t187ap03_L",
+   "redirects": [],
+   "content_type": "application/json",
+   "bytes": 1332413,
+   "sha256": "dbbca2546bff994ced49ec3c7a4f01403c4439d042f72566a7be9530e8a96b19",
+   "latency_ms": 116,
+   "security_notice": false,
+   "records": 1099,
+   "note": null,
+   "sample": "SecurityRecord(code='1101', name='台泥', market='TWSE', security_type='STOCK', isin=None, listed_date=datetime.date(1962, 2, 9), industry='水泥工業')",
+   "verdict": "OK",
+   "group": "OpenAPI"
+  },
+  "companies_tpex": {
+   "url": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O",
+   "params": null,
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O",
+   "redirects": [],
+   "content_type": "application/json",
+   "bytes": 1079373,
+   "sha256": "537d241971ac5038fb710ac5422e3939354be6c34e86c1a685dc1e0093cf9587",
+   "latency_ms": 156,
+   "security_notice": false,
+   "records": 897,
+   "note": null,
+   "sample": "SecurityRecord(code='1240', name='茂生農經', market='TPEX', security_type='STOCK', isin=None, listed_date=datetime.date(2018, 8, 8), industry='農業科技業')",
+   "verdict": "OK",
+   "group": "OpenAPI"
+  },
+  "revenue_twse": {
+   "url": "https://openapi.twse.com.tw/v1/opendata/t187ap05_L",
+   "params": null,
+   "status": 200,
+   "final_url": "https://openapi.twse.com.tw/v1/opendata/t187ap05_L",
+   "redirects": [],
+   "content_type": "application/json",
+   "bytes": 607634,
+   "sha256": "a58c04b3bdc2b94632027018ca4f09f6ad053848addb7b9580b372626542fc17",
+   "latency_ms": 56,
+   "security_notice": false,
+   "records": 1088,
+   "note": null,
+   "sample": "RevenueRecord(code='1101', name='台泥', period=datetime.date(2026, 9, 1), revenue=14321556, revenue_prev_month=13515534, revenue_last_year=13306676, mom_pct=Decimal('5.963671135746468'), yoy_pct=Decimal",
+   "verdict": "OK",
+   "group": "OpenAPI"
+  },
+  "revenue_tpex": {
+   "url": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap05_O",
+   "params": null,
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap05_O",
+   "redirects": [],
+   "content_type": "application/json",
+   "bytes": 496597,
+   "sha256": "a27fea120daa8ef4543bcbf6e31426cad2e0201111ee8d97916fbb5fce2727a6",
+   "latency_ms": 107,
+   "security_notice": false,
+   "records": 893,
+   "note": null,
+   "sample": "RevenueRecord(code='1240', name='茂生農經', period=datetime.date(2026, 9, 1), revenue=282821, revenue_prev_month=251724, revenue_last_year=250266, mom_pct=Decimal('12.353609508827128'), yoy_pct=Decimal('1",
+   "verdict": "OK",
+   "group": "OpenAPI"
+  },
+  "income_twse": {
+   "url": "https://openapi.twse.com.tw/v1/opendata/t187ap06_L_ci",
+   "params": null,
+   "status": 200,
+   "final_url": "https://openapi.twse.com.tw/v1/opendata/t187ap06_L_ci",
+   "redirects": [],
+   "content_type": "application/json",
+   "bytes": 72184,
+   "sha256": "bd8ded65363e77281c9c9352a809c8c3a45dc96bb18b7be995554ea50fa14074",
+   "latency_ms": 49,
+   "security_notice": false,
+   "records": 53,
+   "note": null,
+   "sample": "FinancialRecord(code='1232', name='大統益', fiscal_year=2026, fiscal_quarter=3, revenue=18753075, gross_profit=2615915, operating_income=1634982, net_income=1341100, eps=Decimal('8.03'), total_assets=Non",
+   "verdict": "OK",
+   "group": "OpenAPI"
+  },
+  "balance_tpex": {
+   "url": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap07_O_ci",
+   "params": null,
+   "status": 200,
+   "final_url": "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap07_O_ci",
+   "redirects": [],
+   "content_type": "application/json",
+   "bytes": 35334,
+   "sha256": "47b4dd6586f4428e3835c26c4e38afff60d82660d6ab0210c25281fa3ee7fbab",
+   "latency_ms": 72,
+   "security_notice": false,
+   "records": 41,
+   "note": null,
+   "sample": "FinancialRecord(code='1584', name='精剛', fiscal_year=2026, fiscal_quarter=3, revenue=None, gross_profit=None, operating_income=None, net_income=None, eps=None, total_assets=8039042, total_liabilities=3",
+   "verdict": "OK",
+   "group": "OpenAPI"
+  },
+  "isin_twse": {
+   "url": "https://isin.twse.com.tw/isin/C_public.jsp",
+   "params": {
+    "strMode": "2"
+   },
+   "status": 200,
+   "final_url": "https://isin.twse.com.tw/isin/C_public.jsp?strMode=2",
+   "redirects": [],
+   "content_type": "text/html;charset=MS950",
+   "bytes": 9969039,
+   "sha256": "1b30068570f1880cc3f0f98fece9c200e829a5d6768c6e7f4faf2ae87d4f6816",
+   "latency_ms": 32845,
+   "security_notice": false,
+   "records": 41766,
+   "note": null,
+   "sample": "SecurityRecord(code='1101', name='台泥', market='TWSE', security_type='STOCK', isin='TW0001101004', listed_date=datetime.date(1962, 2, 9), industry='水泥工業')",
+   "verdict": "OK",
+   "group": "ISIN"
+  },
+  "isin_tpex": {
+   "url": "https://isin.twse.com.tw/isin/C_public.jsp",
+   "params": {
+    "strMode": "4"
+   },
+   "status": 200,
+   "final_url": "https://isin.twse.com.tw/isin/C_public.jsp?strMode=4",
+   "redirects": [],
+   "content_type": "text/html;charset=MS950",
+   "bytes": 3304931,
+   "sha256": "03dbe4dd7332975ce7fa84b5735e635fd8df40a8395cf56608486d3b76bcf77c",
+   "latency_ms": 4835,
+   "security_notice": false,
+   "records": 13864,
+   "note": null,
+   "sample": "SecurityRecord(code='700019', name='宏捷科統一5C購01', market='TPEX', security_type='OTHER', isin='TW25Z7000198', listed_date=datetime.date(2025, 10, 1), industry=None)",
+   "verdict": "OK",
+   "group": "ISIN"
+  },
+  "revenue_history_twse_201901": {
+   "url": "https://mopsov.twse.com.tw/nas/t21/sii/t21sc03_108_1_0.html",
+   "params": null,
+   "status": 200,
+   "final_url": "https://mopsov.twse.com.tw/nas/t21/sii/t21sc03_108_1_0.html",
+   "redirects": [],
+   "content_type": "text/html",
+   "bytes": 405263,
+   "sha256": "5872647d8d012dda5c0da7922fb140438f2ea3c8deef080a01dc7876c4cf8029",
+   "latency_ms": 1140,
+   "security_notice": false,
+   "records": 891,
+   "note": null,
+   "sample": "RevenueRecord(code='1101', name='台泥', period=datetime.date(2019, 1, 1), revenue=9394240, revenue_prev_month=11404254, revenue_last_year=9617393, mom_pct=Decimal('-17.62'), yoy_pct=Decimal('-2.32'), cu",
+   "verdict": "OK",
+   "group": "MOPS"
+  },
+  "revenue_history_tpex_201901": {
+   "url": "https://mopsov.twse.com.tw/nas/t21/otc/t21sc03_108_1_0.html",
+   "params": null,
+   "status": 200,
+   "final_url": "https://mopsov.twse.com.tw/nas/t21/otc/t21sc03_108_1_0.html",
+   "redirects": [],
+   "content_type": "text/html",
+   "bytes": 340644,
+   "sha256": "02e12e158a9bdf080a711ea46c59eafac28e4ac36cf8397f82d02c654b118098",
+   "latency_ms": 107,
+   "security_notice": false,
+   "records": 746,
+   "note": null,
+   "sample": "RevenueRecord(code='1264', name='德麥', period=datetime.date(2019, 1, 1), revenue=439259, revenue_prev_month=374937, revenue_last_year=410967, mom_pct=Decimal('17.15'), yoy_pct=Decimal('6.88'), cum_reve",
+   "verdict": "OK",
+   "group": "MOPS"
+  },
+  "revenue_history_twse_latest": {
+   "url": "https://mopsov.twse.com.tw/nas/t21/sii/t21sc03_115_10_0.html",
+   "params": null,
+   "status": 200,
+   "final_url": "https://mopsov.twse.com.tw/nas/t21/sii/t21sc03_115_10_0.html",
+   "redirects": [],
+   "content_type": "text/html",
+   "bytes": 28985,
+   "sha256": "c76cb48d71c2c6c70e98894cf493e4aa0d740696a3326b7b5f37dd7c26314e99",
+   "latency_ms": 482,
+   "security_notice": false,
+   "records": 31,
+   "note": null,
+   "sample": "RevenueRecord(code='1452', name='宏益', period=datetime.date(2026, 10, 1), revenue=134085, revenue_prev_month=60605, revenue_last_year=105501, mom_pct=Decimal('121.24'), yoy_pct=Decimal('27.09'), cum_re",
+   "verdict": "OK",
+   "group": "MOPS"
+  },
+  "mis_intraday": {
+   "url": "https://mis.twse.com.tw/stock/api/getStockInfo.jsp",
+   "params": {
+    "ex_ch": "tse_2330.tw",
+    "json": "1",
+    "delay": "0"
+   },
+   "verdict": "UNREACHABLE",
+   "error": "ReadTimeout: The read operation timed out",
+   "latency_ms": 30103,
+   "group": "MIS"
+  }
+ },
+ "groups": {
+  "TWSE": {
+   "ok": 10,
+   "total": 10,
+   "problems": []
+  },
+  "TPEx": {
+   "ok": 6,
+   "total": 6,
+   "problems": []
+  },
+  "OpenAPI": {
+   "ok": 6,
+   "total": 6,
+   "problems": []
+  },
+  "ISIN": {
+   "ok": 2,
+   "total": 2,
+   "problems": []
+  },
+  "MOPS": {
+   "ok": 3,
+   "total": 3,
+   "problems": []
+  },
+  "MIS": {
+   "ok": 0,
+   "total": 1,
+   "problems": [
+    "mis_intraday: UNREACHABLE"
+   ]
+  }
+ },
+ "finished_at": "2026-11-03T14:30:26.454446+00:00",
+ "all_ok": false
+}

@@ -36,6 +36,7 @@ def _sec(s: Session, code: str, market: str | None) -> Security:
 def health(s: Session = Depends(db)):
     s.execute(text("select 1"))
     safe = s.get(SystemState, "safe_mode")
+    readiness = s.get(SystemState, "data_readiness")
     last = s.execute(select(JobRun.job_name, JobRun.status, JobRun.finished_at)
                      .where(JobRun.job_name == "daily_update").order_by(JobRun.started_at.desc()).limit(1)).first()
     latest = s.scalar(select(func.max(DailyPrice.trade_date)))
@@ -47,6 +48,10 @@ def health(s: Session = Depends(db)):
     return {
         "status": "ok", "trading_mode": get_settings().trading_mode,
         "safe_mode": safe.value if safe else {"on": False},
+        # never a single "backtest_ready": technical and fundamental readiness are separate (integrity-check)
+        "data_readiness": readiness.value if readiness else {
+            "technical_backtest_ready": False, "fundamental_backtest_ready": False,
+            "fundamental_not_ready_reason": "integrity-check has not been run"},
         "latest_price_date": latest, "hours_since_latest_price_date": stale_hours,
         "last_daily_update": dict(last._mapping) if last else None,
         "sources_down": [f"{x.source}/{x.dataset}" for x in sources if x.status == "DOWN"],

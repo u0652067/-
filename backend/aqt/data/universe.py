@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from aqt.config import get_settings
+from aqt.data.tradability import blocked_securities
 from aqt.models import DailyPrice, DataQualityIssue, Security
 
 MIN_HISTORY_DAYS = 60
@@ -46,6 +47,7 @@ def build_universe(session: Session, as_of: date, min_turnover: float | None = N
         select(DataQualityIssue.security_id).where(DataQualityIssue.trade_date == as_of,
                                                    DataQualityIssue.severity == "ERROR",
                                                    DataQualityIssue.security_id.is_not(None)))}
+    restricted = blocked_securities(session, as_of)
     for sid, g in df.groupby("sid"):
         g = g.sort_values("d")
         last = g.iloc[-1]
@@ -53,6 +55,8 @@ def build_universe(session: Session, as_of: date, min_turnover: float | None = N
             u.excluded[sid] = "not_common_stock"
         elif last.d != as_of or last.close is None or pd.isna(last.close) or last.volume == 0:
             u.excluded[sid] = "no_trade_today"
+        elif sid in restricted:
+            u.excluded[sid] = restricted[sid]
         elif sid in bad:
             u.excluded[sid] = "data_quality_error"
         elif len(g) < MIN_HISTORY_DAYS:

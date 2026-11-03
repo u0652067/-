@@ -110,7 +110,8 @@ class CorporateAction(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     security_id: Mapped[int] = mapped_column(ForeignKey("securities.id"), nullable=False)
     ex_date: Mapped[date] = mapped_column(Date, nullable=False)
-    action_type: Mapped[str] = mapped_column(String(16), nullable=False)  # DIV | RIGHTS | DIV_RIGHTS | CAPITAL_REDUCTION
+    # DIV | RIGHTS | DIV_RIGHTS | CAPITAL_REDUCTION | PAR_CHANGE | SPLIT | REVERSE_SPLIT
+    action_type: Mapped[str] = mapped_column(String(24), nullable=False)
     prev_close: Mapped[Decimal | None] = mapped_column(PRICE)
     ref_price: Mapped[Decimal | None] = mapped_column(PRICE)
     cash_dividend: Mapped[Decimal | None] = mapped_column(Numeric(12, 6))
@@ -249,6 +250,28 @@ class FinancialStatement(Base):
     available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     source: Mapped[str] = mapped_column(String(32), nullable=False)
     raw_payload_id: Mapped[int | None] = mapped_column(ForeignKey("raw_payloads.id"))
+    # actual publication time (G7); fundamental backtests may only use pit_reliable rows
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    published_basis: Mapped[str] = mapped_column(String(24), nullable=False, default="UNKNOWN")
+    pit_reliable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+
+class TradingRestriction(Base):
+    """Exchange-published trading restrictions (disposition, altered trading, halts ...) — G6."""
+    __tablename__ = "trading_restrictions"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    security_id: Mapped[int] = mapped_column(ForeignKey("securities.id"), nullable=False)
+    restriction_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date | None] = mapped_column(Date)
+    announced_date: Mapped[date | None] = mapped_column(Date)
+    detail: Mapped[dict] = mapped_column(JSONB, default=dict)
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    raw_payload_id: Mapped[int | None] = mapped_column(ForeignKey("raw_payloads.id"))
+    available_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    __table_args__ = (UniqueConstraint("security_id", "restriction_type", "start_date", "source",
+                                       name="uq_trading_restriction"),
+                      Index("ix_trading_restrictions_dates", "start_date", "end_date"))
 
 
 class IntradayQuote(Base):
@@ -277,7 +300,12 @@ class DataQualityIssue(Base, TimestampMixin):
     trade_date: Mapped[date | None] = mapped_column(Date)
     detail: Mapped[dict] = mapped_column(JSONB, default=dict)
     resolved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    __table_args__ = (Index("ix_dq_issues_date", "trade_date", "check_name"),)
+    # G13 review: what explains the issue, and whether the security-day must be kept out of backtests
+    classification: Mapped[str | None] = mapped_column(String(32))
+    blocks_backtest: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (Index("ix_dq_issues_date", "trade_date", "check_name"),
+                      Index("ix_dq_issues_blocking", "security_id", "blocks_backtest"))
 
 
 class DataSourceStatus(Base):

@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## [0.2.1] — 2026-11-03 — PR #2 收尾
+- G7 財報公告時間回補完成：15,374/15,374；54,729 筆可靠、618 筆查無公告時間（永久排除）。
+- integrity 與 `/api/health` 改為分開呈現 `technical_backtest_ready`、`fundamental_backtest_ready`（不再有單一 backtest_ready）；狀態存於 `system_state.data_readiness`。
+- 每日流程結束時同步分類已知品質問題（避免新日期出現未分類問題）。
+- 最終驗證：測試 108 passed；integrity coverage COMPLETE、quality REVIEWED_WITH_EXCLUSIONS（未分類 0）、technical_backtest_ready=true、fundamental_backtest_ready=false；G13 抽驗 25/25 相符；健康檢查 27/28（MIS 盤後逾時）。
+
+## [0.2.0] — 2026-11-03 — PHASE 1 驗收缺口修正（PR，待審；未進入 PHASE 2）
+- **G4/G8** 新來源 `sources/corporate_events.py`：TPEx 除權息（exDailyQ）、上市/上櫃減資（TWTAUU / revivt）、上市/上櫃面額變更（TWTB8U / pvChgRslt）、上市 ETF 分割（TWTCAU）。還原因子＝參考價/前收，對所有事件一致；除權息日遇休市（颱風）套用到下一交易日。
+- **G6** 新來源 `sources/restrictions.py` 與資料表 `trading_restrictions`：處置（區間）、變更交易/全額交割（每日）、分盤、管理股票、停止交易、暫停交易。`tradability.blocked_securities()` 由 `build_universe()` 呼叫；每日排程同步更新。
+- **G7** `sources/mops_history.py`：MOPS 彙總損益表/資產負債表（各產業模板）＋證交所電子文件上傳時間；`financial_statements` 新增 `published_at`、`published_basis`、`pit_reliable`；`fundamentals.latest_statements_as_of()` 只回傳可靠公告時間且已公告者。
+- **G13** `quality_review.py`：957 筆全數分類；未解釋者升為 ERROR 並阻擋回測 120 天；以個股月報表獨立抽驗。
+- **integrity** 拆成「覆蓋完整度」「資料品質狀態」「backtest_ready」。
+- migration 0003（`corporate_actions.action_type` 加長、`trading_restrictions`、財報公告欄位、品質分類欄位）；套用前做驗證備份 `pre_gap_fixes`。
+- `Fetcher` 支援 POST（MOPS）；新增 CLI `review-quality`；`backfill-full` 新增 phases：corporate_events、restrictions、financials、financial_pubdates、quality_review。
+- 測試 107 passed；A7 真實中斷續傳通過；健康檢查 28/28 OK。證據：`evidence/2026-11-02_gap_fixes/`。
+
 ## [0.1.5] — 2026-11-02 — 2019 起全量回補完成
 - `backfill-full` 2019-01-01～2026-10-31：2026-11-01 20:00 → 11-02 10:47（台北），2,044 平日、94 個月全部 DONE、0 失敗、0 次安全警示；MOPS 歷史月營收 186 個市場月全部完成；技術指標 3,948,909 列。
 - 完整性報告（`evidence/2026-11-01_local_deploy/integrity_post_full_backfill.md`）：Complete=True。daily_prices 4,014,475、institutional_trades 3,563,322、margin_trades 3,621,536、valuations 3,410,130、monthly_revenues 163,697、corporate_actions 8,788、raw_payloads 15,729；資料庫 5.3 GB、原始回應檔 479 MB。

@@ -25,7 +25,7 @@ from aqt.data.http import Fetcher
 from aqt.db import session_scope
 from aqt.indicators.compute import compute_for_dates, recompute_adj_factors
 from aqt.jobs.runtime import get_state, log_event, set_state
-from aqt.models import CorporateAction, MonthlyRevenue, Security
+from aqt.models import CorporateAction, DailyPrice, MonthlyRevenue, Security
 
 log = logging.getLogger(__name__)
 STATE_KEY = "backfill_full"
@@ -229,6 +229,98 @@ class FullBackfill:
             q0 = q1 + timedelta(days=1)
         self.state.update(indicators_rows=total, adjust_through=str(self.end), adjust_dirty=False)
 
+    # -------------------------------------------------------------- PHASE 1 gap datasets
+    def _step(self, bucket: str, key: str, fn) -> None:
+        """Run one resumable unit of work; result kept in state[bucket][key] ('DONE ...' = skip next time)."""
+        book = self.state.setdefault(bucket, {})
+        if str(book.get(key, "")).startswith("DONE"):
+            return
+        for attempt in range(1, self.settings.backfill_block_max_retries + 2):
+            try:
+                book[key] = f"DONE {fn()}"[:300]
+                break
+            except Exception as e:
+                book[key] = f"FAILED: {e}"[:300]
+                if any(k in str(e) for k in _BLOCK_MARKERS) and attempt <= self.settings.backfill_block_max_retries:
+                    self._cooldown(key, attempt)
+                    continue
+                break
+        self.save()
+
+    def corporate_events(self) -> None:
+        """G4/G8: TPEx ex-rights, capital reductions, par-value changes, ETF splits; then re-derive the
+        reference prev_close on event days and mark adjustments for recomputation."""
+        from aqt.data import events
+        from aqt.data.sources.corporate_events import EVENTS
+        self.save(phase="corporate_events", status="RUNNING")
+        for name in EVENTS:
+            for y in range(self.start.year, self.end.year + 1):
+                s0, e0 = max(self.start, date(y, 1, 1)), min(self.end, date(y, 12, 31))
+                self._step("corporate_events", f"{name}:{y}",
+                           lambda: events.ingest_corporate_events(self.engine, self.fetcher, s0, e0, (name,),
+                                                                  recompute=False)[name])
+        self._step("corporate_events", f"prev_close_refresh:{self.end}",
+                   lambda: events.refresh_prev_close_on_event_days(self.engine, self.start, self.end))
+        self.state["adjust_dirty"] = True
+        self.save()
+
+    def restrictions(self) -> None:
+        """G6: disposition and halt ranges per year, then the daily altered-trading lists per trading day."""
+        from aqt.data import events
+        self.save(phase="restrictions", status="RUNNING")
+        for y in range(self.start.year, self.end.year + 1):
+            s0, e0 = max(self.start, date(y, 1, 1)), min(self.end, date(y, 12, 31))
+            self._step("restrictions", f"ranges:{s0}..{e0}",
+                       lambda: events.ingest_restriction_ranges(self.engine, self.fetcher, s0, e0))
+        with session_scope(self.engine) as s:
+            days = [d for (d,) in s.execute(select(DailyPrice.trade_date).distinct()
+                                            .where(DailyPrice.trade_date.between(self.start, self.end))
+                                            .order_by(DailyPrice.trade_date))]
+        t0 = time.monotonic()
+        for i, d in enumerate(days):
+            self._step("restriction_snapshots", str(d),
+                       lambda: sum(v["rows"] for v in events.ingest_restriction_snapshot(
+                           self.engine, self.fetcher, d).values()))
+            if i % 20 == 0:
+                left = (time.monotonic() - t0) / (i + 1) * (len(days) - i - 1)
+                self.save(phase_note=f"restriction snapshots {i + 1}/{len(days)} ({d}); ~{int(left / 60)} min left")
+
+    def financials(self) -> None:
+        """G7 values: MOPS summary income statement + balance sheet per market and quarter."""
+        from aqt.data import events
+        self.save(phase="financials", status="RUNNING")
+        for y in range(self.start.year, self.end.year + 1):
+            for q in (1, 2, 3, 4):
+                from aqt.data.pit import financial_statement_deadline
+                if financial_statement_deadline(y, q) > self.end + timedelta(days=1):
+                    continue  # not due yet
+                for m in pipeline.MARKETS:
+                    self._step("financials", f"{m}:{y}Q{q}",
+                               lambda: events.ingest_financial_quarter(self.engine, self.fetcher, m, y, q))
+
+    def financial_pubdates(self) -> None:
+        """G7 publication time: one TWSE e-document query per company and fiscal year."""
+        from aqt.data import events
+        self.save(phase="financial_pubdates", status="RUNNING")
+        todo = events.companies_needing_pubdates(self.engine, self.start.year, self.end.year)
+        t0 = time.monotonic()
+        for i, (sid, code, y) in enumerate(todo):
+            self._step("financial_pubdates", f"{code}:{y}",
+                       lambda: events.ingest_publication_times(self.engine, self.fetcher, sid, code, y))
+            if i % 25 == 0:
+                left = (time.monotonic() - t0) / (i + 1) * (len(todo) - i - 1)
+                self.save(phase_note=f"publication times {i + 1}/{len(todo)} ({code} {y}); "
+                                     f"~{int(left / 60)} min left")
+
+    def quality_review(self) -> None:
+        """G13: classify every price anomaly (with independent verification of the unexplained ones)."""
+        from aqt.data import quality_review as qr
+        self.save(phase="quality_review", status="RUNNING")
+        counts = qr.classify_move_issues(self.engine, self.fetcher)
+        qr.classify_known_checks(self.engine)
+        self.state["quality_review"] = counts
+        self.save()
+
     # -------------------------------------------------------------- driver
     def run(self, phases=("corporate_actions", "daily", "revenue", "adjust")) -> dict:
         own = self.fetcher is None
@@ -240,10 +332,17 @@ class FullBackfill:
                 if p == "revenue" and not self.revenue:
                     continue
                 {"corporate_actions": self.corporate_actions, "daily": self.daily,
-                 "revenue": self.revenue_history, "adjust": self.adjust}[p]()
+                 "revenue": self.revenue_history, "adjust": self.adjust,
+                 "corporate_events": self.corporate_events, "restrictions": self.restrictions,
+                 "financials": self.financials, "financial_pubdates": self.financial_pubdates,
+                 "quality_review": self.quality_review}[p]()
             incomplete = [k for k, v in self.state["months"].items() if v.get("status") != "DONE"]
             incomplete += [k for k, v in self.state["revenue"].items() if not v.startswith("DONE")]
             incomplete += [k for k, v in self.state["corporate_actions"].items() if v != "DONE"]
+            for bucket in ("corporate_events", "restrictions", "restriction_snapshots", "financials",
+                           "financial_pubdates"):
+                incomplete += [f"{bucket}/{k}" for k, v in self.state.get(bucket, {}).items()
+                               if not str(v).startswith("DONE")]
             self.save(status="DONE" if not incomplete else "DONE_WITH_GAPS", phase=None,
                       incomplete=incomplete, finished_at=_now())
         except BaseException as e:  # KeyboardInterrupt / SystemExit from SIGTERM included
@@ -278,6 +377,11 @@ def summary(state: dict | None) -> dict:
         "revenue_months_done": sum(1 for v in rev.values() if v.startswith("DONE")),
         "revenue_months_not_done": {k: v for k, v in rev.items() if not v.startswith("DONE")},
         "corporate_action_chunks_failed": {k: v for k, v in state.get("corporate_actions", {}).items() if v != "DONE"},
+        "gap_datasets": {b: {"done": sum(1 for v in state.get(b, {}).values() if str(v).startswith("DONE")),
+                             "not_done": sum(1 for v in state.get(b, {}).values() if not str(v).startswith("DONE"))}
+                         for b in ("corporate_events", "restrictions", "restriction_snapshots", "financials",
+                                   "financial_pubdates") if state.get(b)},
+        "quality_review": state.get("quality_review"),
         "blocked_events": state.get("blocked_events", 0), "updated_at": state.get("updated_at"),
         "interrupted_reason": state.get("interrupted_reason") if state.get("status") == "INTERRUPTED" else None,
     }

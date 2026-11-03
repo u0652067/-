@@ -9,12 +9,12 @@ from sqlalchemy.orm import Session
 from aqt.data import pit
 from aqt.data.records import (
     CorporateActionRecord, FinancialRecord, HolidayRecord, IndexRecord, InstitutionalRecord,
-    MarginRecord, PriceRecord, RevenueRecord, SecurityRecord, ValuationRecord,
+    MarginRecord, PriceRecord, RestrictionRecord, RevenueRecord, SecurityRecord, ValuationRecord,
 )
 from aqt.data.sources.twse import classify_code
 from aqt.models import (
     CorporateAction, DailyPrice, FinancialStatement, InstitutionalTrade, MarginTrade, MarketIndex,
-    MonthlyRevenue, Security, TradingCalendar, Valuation,
+    MonthlyRevenue, Security, TradingCalendar, TradingRestriction, Valuation,
 )
 from aqt.models.base import utcnow
 
@@ -200,10 +200,55 @@ def upsert_corporate_actions(session, recs: list[CorporateActionRecord], market,
     ids = ensure_securities(session, [(r.code, r.name, market) for r in recs])
     rows = [dict(security_id=ids[(r.code, market)], ex_date=r.ex_date, action_type=r.action_type,
                  prev_close=r.prev_close, ref_price=r.ref_price, cash_dividend=r.cash_dividend,
-                 source=source, raw_payload_id=raw_id,
+                 stock_dividend_ratio=r.stock_dividend_ratio, source=source, raw_payload_id=raw_id,
                  # TWSE announces ex-rights reference prices before the ex-date; usable from the ex-date open.
                  available_at=pit.at_tpe(r.ex_date, pit.time(8, 0))) for r in recs]
     return _upsert(session, CorporateAction, rows, ["security_id", "ex_date", "action_type"])
+
+
+RESTRICTION_AVAILABLE_TIME = {"DISPOSITION": pit.time(18, 0)}  # announced after the close of announced_date
+
+
+def upsert_restrictions(session, recs: list[RestrictionRecord], market, source, raw_id) -> dict:
+    """Only securities already in the master are recorded (warrants etc. in halt lists are skipped)."""
+    known = security_id_map(session, market)
+    rows, skipped = [], 0
+    for r in recs:
+        sid = known.get((r.code, market))
+        if sid is None:
+            skipped += 1
+            continue
+        ann = r.announced_date or r.start_date
+        rows.append(dict(security_id=sid, restriction_type=r.restriction_type, start_date=r.start_date,
+                         end_date=r.end_date, announced_date=r.announced_date, detail=r.detail, source=source,
+                         raw_payload_id=raw_id,
+                         available_at=pit.at_tpe(ann, RESTRICTION_AVAILABLE_TIME.get(r.restriction_type,
+                                                                                       pit.time(8, 0)))))
+    n = _upsert(session, TradingRestriction, rows, ["security_id", "restriction_type", "start_date", "source"])
+    return {"rows": n, "skipped_unknown_codes": skipped}
+
+
+def upsert_financial_history(session, recs: list[FinancialRecord], market, source, raw_id) -> int:
+    """Historical statements: publication time unknown until `set_financial_published_at` finds it, so they
+    start as STATUTORY_DEADLINE / pit_reliable=False (excluded from fundamental backtests)."""
+    n = upsert_financials(session, recs, market, source, raw_id)
+    session.execute(update(FinancialStatement).where(FinancialStatement.published_basis == "UNKNOWN",
+                                                     FinancialStatement.published_date.is_(None))
+                    .values(published_basis="STATUTORY_DEADLINE", pit_reliable=False))
+    return n
+
+
+def set_financial_published_at(session, security_id: int, uploads: dict, raw_id: int | None) -> int:
+    """uploads: {(fiscal_year, quarter): datetime}. The actual upload time replaces the deadline bound."""
+    n = 0
+    for (y, q), when in uploads.items():
+        res = session.execute(update(FinancialStatement)
+                              .where(FinancialStatement.security_id == security_id,
+                                     FinancialStatement.fiscal_year == y, FinancialStatement.fiscal_quarter == q)
+                              .values(published_at=when, available_at=when, published_date=when.date(),
+                                      published_basis="DOC_UPLOAD_TIME", pit_reliable=True))
+        n += res.rowcount or 0
+    return n
 
 
 # ------------------------------------------------------------------ calendar

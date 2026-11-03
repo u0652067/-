@@ -135,6 +135,20 @@ class CorporateActionRecord:
     prev_close: Decimal | None
     ref_price: Decimal | None
     cash_dividend: Decimal | None = None
+    stock_dividend_ratio: Decimal | None = None  # bonus shares per share held
+
+
+@dataclass
+class RestrictionRecord:
+    """A trading restriction published by an exchange. end_date None = open-ended / single-day snapshot
+    handled by the caller; announced_date = when the exchange published it (point-in-time)."""
+    code: str
+    name: str
+    restriction_type: str  # DISPOSITION | ALTERED_TRADING | PERIODIC_AUCTION | MANAGED | STOP_TRADING | SUSPENDED
+    start_date: date
+    end_date: date | None
+    announced_date: date | None = None
+    detail: dict = field(default_factory=dict)
 
 
 @dataclass
