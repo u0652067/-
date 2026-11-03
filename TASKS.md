@@ -105,7 +105,9 @@
 - [x] 引擎在 technical_backtest_ready=false 時拒絕執行；每次執行記錄當下 readiness
 - [ ] 評分分位 vs 未來報酬驗證（待 PHASE 2 後續）
 - [ ] 更多策略（突破、拉回、量能、法人）— 待驗收後
+- [x] 2026-11-04 審查修正（7 項）：歷史均量上限、fail closed、不以事後資訊出場、股利模式＋報酬指數基準、連續資金 Walk-forward、資料內容指紋、公司事件 available_at
 - [ ] migration 0004 尚未套用到正式資料庫（待使用者驗收 PHASE 2）
+- [ ] G9 官方下市事件（目前：無法交易持股凍結並標示不可用）
 
 ## PHASE 3–7 ⏳
 見 ROADMAP.md。

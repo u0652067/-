@@ -28,7 +28,19 @@ python -m pytest -q tests/test_pipeline.py -k safe_mode
 | `test_unexplained_move_becomes_blocking_error_new_listing_does_not` | **G13**：未解釋→ERROR＋阻擋 120 天；新上市前五日→不阻擋；ETF→阻擋 |
 | `test_integrity_reports_coverage_and_quality_separately` | integrity 分開呈現覆蓋完整度、資料品質、backtest_ready；不再有單一 Complete |
 
-## PHASE 2 技術面回測（`test_backtest.py` 15 項）
+## PHASE 2 審查修正（2026-11-04，`test_backtest.py` 共 20 項；全套 128 passed）
+| 測試 | 驗證內容 |
+|---|---|
+| `test_fill_day_volume_never_changes_the_open_fill` | **#1** T+1 全日成交量改為 0／1／1,000 萬，T+1 開盤成交不變 |
+| `test_volume_participation_cap_uses_history_known_at_decision` | **#1** 上限＝決策日前 20 日均量 × 5% |
+| `test_engine_fails_closed_without_explicit_readiness` | **#2** 缺 data_readiness、false、"true"、None、UNREVIEWED、覆蓋不完整、缺欄位 → 全部拒絕 |
+| `test_untradable_holding_is_never_exited_from_hindsight_and_run_is_unusable` | **#3** 行情中斷不會自動出場；凍結並標示不可用 |
+| `test_dividend_mode_and_benchmark_are_recorded_and_never_mixed` | **#4** 股利模式與基準寫入 DB；只有價格指數時不計超額報酬；不支援的模式會報錯 |
+| `test_walk_forward_and_oos_end_to_end`（加強） | **#5** 每段期初＝前段期末；總期末＝最後一段；成本＝各段加總；中間段不評價 |
+| `test_data_fingerprint_changes_when_one_historical_value_changes` | **#6** 改一筆價格只改該月雜湊；改限制也會改變指紋 |
+| `test_corporate_action_published_after_the_period_cannot_change_results` | **#7** 期後才公開的事件不影響結果；公開後才套用 |
+
+## PHASE 2 技術面回測（`test_backtest.py` 第 1 版 15 項）
 | 測試 | 驗證內容 |
 |---|---|
 | `test_known_answer_round_trip_with_taiwan_costs` | **手算對答案**：買 5,000 股 @100（手續費 712）、賣 @110（手續費 783、證交稅 1,650），淨損益 46,855 |
