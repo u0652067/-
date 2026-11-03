@@ -265,9 +265,10 @@ def test_integrity_reports_coverage_and_quality_separately(engine, fetcher, synt
         _issue(s, _sid(s, "2330", "TWSE"), m.dates[5])
     rep = run_integrity_check(engine, m.dates[0], m.dates[9], str(tmp_path), sha_sample=10)
     v = rep["verdict"]
-    assert set(v) == {"coverage", "quality", "backtest_ready"} and "complete" not in v
+    assert set(v) == {"coverage", "quality", "technical_backtest_ready", "fundamental_backtest_ready",
+                      "fundamental_not_ready_reason"} and "complete" not in v and "backtest_ready" not in v
     assert v["quality"]["status"] == "UNREVIEWED" and v["quality"]["unclassified"] >= 1
-    assert v["backtest_ready"] is False
+    assert v["technical_backtest_ready"] is False and v["fundamental_backtest_ready"] is False
     quality_review.classify_move_issues(engine, None)
     quality_review.classify_known_checks(engine)
     v = run_integrity_check(engine, m.dates[0], m.dates[9], str(tmp_path), sha_sample=10)["verdict"]
@@ -275,3 +276,19 @@ def test_integrity_reports_coverage_and_quality_separately(engine, fetcher, synt
     assert v["quality"]["unclassified"] == 0
     md = open(rep["saved_to"].replace(".json", ".md"), encoding="utf-8").read()
     assert "覆蓋完整度" in md and "資料品質狀態" in md and "Complete:" not in md
+
+
+def test_technical_ready_never_implies_fundamental_ready():
+    from aqt.data.integrity import _verdict
+    rep = {"quotes_by_year": [], "secondary_gaps": {}, "revenue_months": [], "unknown_weekdays": [],
+           "rerunnable_days": [], "raw_payloads": {"sha256_sample": {"mismatch": 0}},
+           "quality_review": [{"check_name": "move_exceeds_limit", "severity": "WARN", "classification": "ETF_X",
+                               "blocks_backtest": True, "n": 3}],
+           "financials_pit": [{"fiscal_year": 2024, "published_basis": "DOC_UPLOAD_TIME", "pit_reliable": True, "n": 9},
+                              {"fiscal_year": 2024, "published_basis": "STATUTORY_DEADLINE", "pit_reliable": False,
+                               "n": 2}]}
+    v = _verdict(rep)
+    assert v["technical_backtest_ready"] is True and v["fundamental_backtest_ready"] is False
+    assert "2 financial statements" in v["fundamental_not_ready_reason"]
+    rep["financials_pit"].pop()
+    assert _verdict(rep)["fundamental_backtest_ready"] is True

@@ -139,7 +139,7 @@ def test_integrity_report_counts_and_gaps(engine, fetcher, router, tmp_path):
     assert gaps == {("margin", "TWSE"): 9}
     assert rep["raw_payloads"]["sha256_sample"]["mismatch"] == 0
     assert len(rep["rerunnable_days"]) == 9 and rep["verdict"]["coverage"]["complete"] is False
-    assert rep["verdict"]["backtest_ready"] is False
+    assert rep["verdict"]["technical_backtest_ready"] is False
     assert os.path.exists(rep["saved_to"]) and os.path.exists(rep["saved_to"].replace(".json", ".md"))
 
 

@@ -182,9 +182,14 @@ def _verdict(rep: dict) -> dict:
         "coverage": {"complete": not gaps, "gaps": gaps},
         "quality": {"status": status, "errors": errors, "unclassified": unclassified,
                     "blocking_backtest": blocking, "notes": notes},
-        # usable only when coverage is complete and every anomaly is classified; blocked items are kept
-        # out by tradability.blocked_securities, so their presence does not make the dataset unusable
-        "backtest_ready": not gaps and unclassified == 0,
+        # Two separate flags so "ready" for prices never reads as "ready" for fundamentals.
+        # technical: coverage complete and every anomaly classified (blocked items are kept out by
+        # tradability.blocked_securities). fundamental: additionally every financial statement must have a
+        # verified publication time — rows without one are never served by fundamentals.latest_statements_as_of.
+        "technical_backtest_ready": not gaps and unclassified == 0,
+        "fundamental_backtest_ready": not gaps and unclassified == 0 and fin_unreliable == 0,
+        "fundamental_not_ready_reason": (f"{fin_unreliable} financial statements lack a verified publication time"
+                                         if fin_unreliable else None),
     }
 
 
@@ -195,7 +200,10 @@ def to_markdown(rep: dict) -> str:
          f"| 覆蓋完整度 coverage | {'COMPLETE' if v['coverage']['complete'] else 'GAPS'} |",
          f"| 資料品質狀態 quality | {v['quality']['status']} (ERROR {v['quality']['errors']}, "
          f"unclassified {v['quality']['unclassified']}, blocking {v['quality']['blocking_backtest']}) |",
-         f"| 可用於回測 backtest_ready | {v['backtest_ready']} |", "", "### Coverage gaps"]
+         f"| 技術面回測 technical_backtest_ready | {v['technical_backtest_ready']} |",
+         f"| 基本面回測 fundamental_backtest_ready | {v['fundamental_backtest_ready']}"
+         f"{' — ' + v['fundamental_not_ready_reason'] if v['fundamental_not_ready_reason'] else ''} |",
+         "", "### Coverage gaps"]
     L += [f"- {p}" for p in v["coverage"]["gaps"]] or ["- none"]
     L += ["", "### Quality notes"]
     L += [f"- {p}" for p in v["quality"]["notes"]] or ["- none"]
