@@ -1,0 +1,411 @@
+{
+ "classified": {
+  "ETF_NO_PRICE_LIMIT_UNVERIFIED": 554,
+  "CORPORATE_ACTION_DIV": 106,
+  "NEW_LISTING_NO_LIMIT": 91,
+  "CORPORATE_ACTION_DIV_RIGHTS": 174,
+  "CORPORATE_ACTION_RIGHTS": 32
+ },
+ "known_checks": 10,
+ "sample_verification": [
+  {
+   "classification": "CORPORATE_ACTION_DIV",
+   "code": "6869",
+   "market": "TWSE",
+   "date": "2024-07-26",
+   "reference_prev_close": "291.6900",
+   "corporate_actions": [
+    "DIV"
+   ],
+   "independent_close": "263.00",
+   "independent_prev_close": "297.00",
+   "stored_close": "263.0000",
+   "stored_prev_raw_close": "297.0000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV",
+   "code": "8924",
+   "market": "TPEX",
+   "date": "2022-06-17",
+   "reference_prev_close": "124.3000",
+   "corporate_actions": [
+    "DIV"
+   ],
+   "independent_close": "123.50",
+   "independent_prev_close": "138.00",
+   "stored_close": "123.5000",
+   "stored_prev_raw_close": "138.0000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV",
+   "code": "5213",
+   "market": "TPEX",
+   "date": "2026-06-08",
+   "reference_prev_close": "24.0000",
+   "corporate_actions": [
+    "DIV"
+   ],
+   "independent_close": "23.55",
+   "independent_prev_close": "26.80",
+   "stored_close": "23.5500",
+   "stored_prev_raw_close": "26.8000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV",
+   "code": "3171",
+   "market": "TPEX",
+   "date": "2022-07-12",
+   "reference_prev_close": "16.3800",
+   "corporate_actions": [
+    "DIV"
+   ],
+   "independent_close": "15.90",
+   "independent_prev_close": "17.95",
+   "stored_close": "15.9000",
+   "stored_prev_raw_close": "17.9500",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV",
+   "code": "6158",
+   "market": "TPEX",
+   "date": "2019-07-23",
+   "reference_prev_close": "31.0000",
+   "corporate_actions": [
+    "DIV"
+   ],
+   "independent_close": "30.35",
+   "independent_prev_close": "41.00",
+   "stored_close": "30.3500",
+   "stored_prev_raw_close": "41.0000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV_RIGHTS",
+   "code": "8354",
+   "market": "TPEX",
+   "date": "2019-09-10",
+   "reference_prev_close": "19.9600",
+   "corporate_actions": [
+    "DIV_RIGHTS"
+   ],
+   "independent_close": "19.15",
+   "independent_prev_close": "22.95",
+   "stored_close": "19.1500",
+   "stored_prev_raw_close": "22.9500",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV_RIGHTS",
+   "code": "5386",
+   "market": "TPEX",
+   "date": "2023-07-20",
+   "reference_prev_close": "59.2500",
+   "corporate_actions": [
+    "DIV_RIGHTS"
+   ],
+   "independent_close": "55.40",
+   "independent_prev_close": "63.70",
+   "stored_close": "55.4000",
+   "stored_prev_raw_close": "63.7000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV_RIGHTS",
+   "code": "8076",
+   "market": "TPEX",
+   "date": "2020-08-20",
+   "reference_prev_close": "27.8100",
+   "corporate_actions": [
+    "DIV_RIGHTS"
+   ],
+   "independent_close": "26.20",
+   "independent_prev_close": "30.15",
+   "stored_close": "26.2000",
+   "stored_prev_raw_close": "30.1500",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV_RIGHTS",
+   "code": "5547",
+   "market": "TPEX",
+   "date": "2026-07-07",
+   "reference_prev_close": "20.0000",
+   "corporate_actions": [
+    "DIV_RIGHTS"
+   ],
+   "independent_close": "20.55",
+   "independent_prev_close": "23.20",
+   "stored_close": "20.5500",
+   "stored_prev_raw_close": "23.2000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_DIV_RIGHTS",
+   "code": "6680",
+   "market": "TPEX",
+   "date": "2024-08-06",
+   "reference_prev_close": "71.7900",
+   "corporate_actions": [
+    "DIV_RIGHTS"
+   ],
+   "independent_close": "70.00",
+   "independent_prev_close": "80.20",
+   "stored_close": "70.0000",
+   "stored_prev_raw_close": "80.2000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_RIGHTS",
+   "code": "5474",
+   "market": "TPEX",
+   "date": "2021-08-20",
+   "reference_prev_close": "116.6700",
+   "corporate_actions": [
+    "RIGHTS"
+   ],
+   "independent_close": "111.50",
+   "independent_prev_close": "140.00",
+   "stored_close": "111.5000",
+   "stored_prev_raw_close": "140.0000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_RIGHTS",
+   "code": "5274",
+   "market": "TPEX",
+   "date": "2026-07-07",
+   "reference_prev_close": "14790.9100",
+   "corporate_actions": [
+    "RIGHTS"
+   ],
+   "independent_close": "14415.00",
+   "independent_prev_close": "16270.00",
+   "stored_close": "14415.0000",
+   "stored_prev_raw_close": "16270.0000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_RIGHTS",
+   "code": "6469",
+   "market": "TPEX",
+   "date": "2020-09-09",
+   "reference_prev_close": "94.7900",
+   "corporate_actions": [
+    "RIGHTS"
+   ],
+   "independent_close": "93.50",
+   "independent_prev_close": "111.50",
+   "stored_close": "93.5000",
+   "stored_prev_raw_close": "111.5000",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_RIGHTS",
+   "code": "8121",
+   "market": "TPEX",
+   "date": "2022-10-13",
+   "reference_prev_close": "26.0300",
+   "corporate_actions": [
+    "RIGHTS"
+   ],
+   "independent_close": "23.70",
+   "independent_prev_close": "26.85",
+   "stored_close": "23.7000",
+   "stored_prev_raw_close": "26.8500",
+   "match": true
+  },
+  {
+   "classification": "CORPORATE_ACTION_RIGHTS",
+   "code": "6877",
+   "market": "TPEX",
+   "date": "2024-07-31",
+   "reference_prev_close": "57.7900",
+   "corporate_actions": [
+    "RIGHTS"
+   ],
+   "independent_close": "53.30",
+   "independent_prev_close": "63.60",
+   "stored_close": "53.3000",
+   "stored_prev_raw_close": "63.6000",
+   "match": true
+  },
+  {
+   "classification": "ETF_NO_PRICE_LIMIT_UNVERIFIED",
+   "code": "00988A",
+   "market": "TWSE",
+   "date": "2026-07-17",
+   "reference_prev_close": "18.2100",
+   "corporate_actions": [],
+   "independent_close": "16.24",
+   "independent_prev_close": "18.21",
+   "stored_close": "16.2400",
+   "stored_prev_raw_close": "18.2100",
+   "match": true
+  },
+  {
+   "classification": "ETF_NO_PRICE_LIMIT_UNVERIFIED",
+   "code": "00631L",
+   "market": "TWSE",
+   "date": "2020-03-19",
+   "reference_prev_close": "30.6600",
+   "corporate_actions": [],
+   "independent_close": "26.40",
+   "independent_prev_close": "30.66",
+   "stored_close": "26.4000",
+   "stored_prev_raw_close": "30.6600",
+   "match": true
+  },
+  {
+   "classification": "ETF_NO_PRICE_LIMIT_UNVERIFIED",
+   "code": "00633L",
+   "market": "TWSE",
+   "date": "2024-09-30",
+   "reference_prev_close": "38.6900",
+   "corporate_actions": [],
+   "independent_close": "43.03",
+   "independent_prev_close": "38.69",
+   "stored_close": "43.0300",
+   "stored_prev_raw_close": "38.6900",
+   "match": true
+  },
+  {
+   "classification": "ETF_NO_PRICE_LIMIT_UNVERIFIED",
+   "code": "00756B",
+   "market": "TPEX",
+   "date": "2020-03-19",
+   "reference_prev_close": "43.8900",
+   "corporate_actions": [],
+   "independent_close": "38.56",
+   "independent_prev_close": "43.89",
+   "stored_close": "38.5600",
+   "stored_prev_raw_close": "43.8900",
+   "match": true
+  },
+  {
+   "classification": "ETF_NO_PRICE_LIMIT_UNVERIFIED",
+   "code": "00735",
+   "market": "TWSE",
+   "date": "2026-07-31",
+   "reference_prev_close": "83.7000",
+   "corporate_actions": [],
+   "independent_close": "97.90",
+   "independent_prev_close": "83.70",
+   "stored_close": "97.9000",
+   "stored_prev_raw_close": "83.7000",
+   "match": true
+  },
+  {
+   "classification": "NEW_LISTING_NO_LIMIT",
+   "code": "2762",
+   "market": "TWSE",
+   "date": "2024-01-26",
+   "reference_prev_close": "119.0000",
+   "corporate_actions": [],
+   "independent_close": "106.00",
+   "independent_prev_close": "119.00",
+   "stored_close": "106.0000",
+   "stored_prev_raw_close": "119.0000",
+   "match": true
+  },
+  {
+   "classification": "NEW_LISTING_NO_LIMIT",
+   "code": "7723",
+   "market": "TPEX",
+   "date": "2025-05-02",
+   "reference_prev_close": "55.1000",
+   "corporate_actions": [],
+   "independent_close": "67.60",
+   "independent_prev_close": "None",
+   "stored_close": "67.6000",
+   "stored_prev_raw_close": "55.1000",
+   "match": true
+  },
+  {
+   "classification": "NEW_LISTING_NO_LIMIT",
+   "code": "6761",
+   "market": "TPEX",
+   "date": "2021-11-10",
+   "reference_prev_close": "164.0000",
+   "corporate_actions": [],
+   "independent_close": "189.00",
+   "independent_prev_close": "164.00",
+   "stored_close": "189.0000",
+   "stored_prev_raw_close": "164.0000",
+   "match": true
+  },
+  {
+   "classification": "NEW_LISTING_NO_LIMIT",
+   "code": "00960",
+   "market": "TWSE",
+   "date": "2024-09-25",
+   "reference_prev_close": "15.9300",
+   "corporate_actions": [],
+   "independent_close": "19.09",
+   "independent_prev_close": "15.93",
+   "stored_close": "19.0900",
+   "stored_prev_raw_close": "15.9300",
+   "match": true
+  },
+  {
+   "classification": "NEW_LISTING_NO_LIMIT",
+   "code": "7795",
+   "market": "TWSE",
+   "date": "2026-01-19",
+   "reference_prev_close": "292.0000",
+   "corporate_actions": [],
+   "independent_close": "328.50",
+   "independent_prev_close": "292.00",
+   "stored_close": "328.5000",
+   "stored_prev_raw_close": "292.0000",
+   "match": true
+  }
+ ],
+ "summary": [
+  {
+   "check": "move_exceeds_limit",
+   "severity": "WARN",
+   "classification": "CORPORATE_ACTION_DIV",
+   "blocks_backtest": false,
+   "n": 106
+  },
+  {
+   "check": "move_exceeds_limit",
+   "severity": "WARN",
+   "classification": "CORPORATE_ACTION_RIGHTS",
+   "blocks_backtest": false,
+   "n": 32
+  },
+  {
+   "check": "move_exceeds_limit",
+   "severity": "WARN",
+   "classification": "CORPORATE_ACTION_DIV_RIGHTS",
+   "blocks_backtest": false,
+   "n": 174
+  },
+  {
+   "check": "move_exceeds_limit",
+   "severity": "WARN",
+   "classification": "NEW_LISTING_NO_LIMIT",
+   "blocks_backtest": false,
+   "n": 91
+  },
+  {
+   "check": "move_exceeds_limit",
+   "severity": "WARN",
+   "classification": "ETF_NO_PRICE_LIMIT_UNVERIFIED",
+   "blocks_backtest": true,
+   "n": 554
+  },
+  {
+   "check": "volume_without_close",
+   "severity": "ERROR",
+   "classification": "NO_CLOSE_FIXED_PRICE_ONLY",
+   "blocks_backtest": false,
+   "n": 4880
+  }
+ ]
+}

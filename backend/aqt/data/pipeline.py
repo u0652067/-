@@ -202,10 +202,11 @@ def run_daily_update(engine: Engine, d: date, fetcher: Fetcher | None = None,
                 issues += quality.check_institutional(s, d)
                 quality.save_issues(s, issues)
             r["quality"] = quality.summarize(issues)
+            from aqt.data import quality_review
             if any(i.check_name == "move_exceeds_limit" for i in issues):
-                from aqt.data import quality_review
                 r["quality_review"] = quality_review.classify_move_issues(
                     engine, fetcher if corporate_actions else None, only_date=d)
+            quality_review.classify_known_checks(engine)  # every issue leaves the daily run classified
 
             if compute_indicators and trading_markets:
                 with session_scope(engine) as s:
