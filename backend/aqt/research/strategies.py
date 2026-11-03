@@ -71,7 +71,7 @@ class EqualWeightLiquid(Strategy):
 
     def target_weights(self, view, holdings):
         eligible = view.universe().eligible
-        ind = view.indicators(eligible, ("turnover_ma20",))
+        ind = view.indicators(eligible, (20,)).dropna(subset=["turnover_ma20"])
         if ind.empty:
             return {}
         top = ind.sort_values(["turnover_ma20", "sid"], ascending=[False, True]).head(self.params["top_n"])
@@ -93,10 +93,10 @@ class MaTrendMomentum(Strategy):
 
     def target_weights(self, view, holdings):
         eligible = view.universe().eligible
-        ind = view.indicators(eligible, ("ma20", "ma60")).dropna()
+        ind = view.indicators(eligible, (20, 60)).dropna()
         if ind.empty:
             return {}
-        trend = ind[(ind.adj_close_stored > ind.ma20) & (ind.ma20 > ind.ma60)]
+        trend = ind[(ind.adj_close > ind.ma20) & (ind.ma20 > ind.ma60)]
         if trend.empty:
             return {}
         lb = int(self.params["lookback"])

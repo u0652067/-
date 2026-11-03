@@ -9,15 +9,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from aqt.models import (
-    BacktestRun, BacktestTrade, CorporateAction, DailyPrice, DataQualityIssue, FinancialStatement, RawPayload,
-    Strategy as StrategyRow, StrategyVersion, TradingRestriction,
+    BacktestRun, BacktestTrade, DailyPrice, FinancialStatement, RawPayload, Strategy as StrategyRow, StrategyVersion,
 )
 from aqt.research import DISCLAIMER, ENGINE_VERSION
 from aqt.research.engine import BacktestResult
+from aqt.research.fingerprint import data_fingerprint
 from aqt.research.strategies import Strategy
 
 _CODE_FILES = ("research/engine.py", "research/costs.py", "research/dataview.py", "research/strategies.py",
-               "research/metrics.py", "research/splits.py", "data/universe.py", "data/tradability.py",
+               "research/metrics.py", "research/splits.py", "research/fingerprint.py", "research/evaluation.py", "data/universe.py", "data/tradability.py",
                "data/tw_rules.py", "data/fundamentals.py")
 
 
@@ -31,22 +31,18 @@ def code_fingerprint() -> str:
     return h.hexdigest()
 
 
-def data_version(session: Session) -> dict:
-    """Identifies the exact database state a backtest read."""
+def data_version(session: Session, start, end) -> tuple[dict, dict]:
+    """(summary, manifest): the summary for quick reading, the manifest is the content fingerprint."""
+    fp = data_fingerprint(session, start, end)
     q = lambda stmt: session.scalar(stmt)  # noqa: E731
-    v = {
+    summary = {
+        "fingerprint_sha256": fp["sha256"], "fingerprint_period": fp["period"],
         "max_raw_payload_id": q(select(func.max(RawPayload.id))),
-        "daily_prices": {"rows": q(select(func.count()).select_from(DailyPrice)),
-                         "max_date": str(q(select(func.max(DailyPrice.trade_date))))},
-        "corporate_actions": q(select(func.count()).select_from(CorporateAction)),
-        "trading_restrictions": q(select(func.count()).select_from(TradingRestriction)),
-        "quality_issues_blocking": q(select(func.count()).select_from(DataQualityIssue)
-                                     .where(DataQualityIssue.blocks_backtest.is_(True))),
-        "quality_last_reviewed_at": str(q(select(func.max(DataQualityIssue.reviewed_at)))),
+        "daily_prices_max_date": str(q(select(func.max(DailyPrice.trade_date)))),
         "financials_pit_reliable": q(select(func.count()).select_from(FinancialStatement)
                                      .where(FinancialStatement.pit_reliable.is_(True))),
     }
-    return v
+    return summary, fp
 
 
 def _hash(obj) -> str:
@@ -77,7 +73,7 @@ def strategy_version_id(session: Session, strategy: Strategy) -> int:
 
 def save_run(session: Session, strategy: Strategy, result: BacktestResult, kind: str, started_at: datetime,
              extra_config: dict | None = None) -> int:
-    dv = data_version(session)
+    dv, fp = data_version(session, date.fromisoformat(result.config["start"]), date.fromisoformat(result.config["end"]))
     cfg = {**result.config, **(extra_config or {}), "rejections_by_reason": _count(result.rejections)}
     run = BacktestRun(
         strategy_version_id=strategy_version_id(session, strategy), kind=kind,
@@ -86,9 +82,11 @@ def save_run(session: Session, strategy: Strategy, result: BacktestResult, kind:
         cost_model=result.config["cost_model"], metrics=result.metrics, regime_metrics={},
         equity_curve=result.equity_curve, data_snapshot_at=datetime.now(timezone.utc),
         code_ref=code_fingerprint()[:40], status="DONE", config=cfg, params_hash=strategy.params_hash(),
-        data_version=dv, data_version_hash=_hash(dv), results_hash=result.results_hash(),
+        data_version=dv, data_version_hash=fp["sha256"], data_manifest=fp, results_hash=result.results_hash(),
         engine_version=ENGINE_VERSION, started_at=started_at, finished_at=datetime.now(timezone.utc),
-        disclaimer=DISCLAIMER)
+        disclaimer=DISCLAIMER, dividend_mode=result.config.get("dividend_mode"),
+        benchmark_index=result.config.get("benchmark_index"), benchmark_kind=result.config.get("benchmark_kind"),
+        usable_for_evaluation=result.evaluation.get("usable_for_evaluation"), evaluation=result.evaluation)
     session.add(run)
     session.flush()
     for t in result.trades:

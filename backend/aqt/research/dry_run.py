@@ -36,6 +36,8 @@ def main(start: date, end: date, wf_start: date) -> dict:
                                  "results_hash": r.results_hash(), "metrics": r.metrics,
                                  "rejections_by_reason": reasons,
                                  "fills": sum(1 for f in r.fills if f["type"] in ("BUY", "SELL")),
+                                 "evaluation": r.evaluation, "benchmark": {k: v for k, v in r.benchmark.items()
+                                                                            if k != "curve"},
                                  "corporate_action_adjustments": sum(1 for f in r.fills
                                                                      if f["type"] == "CORPORATE_ACTION")}
         t0 = time.monotonic()
@@ -43,7 +45,17 @@ def main(start: date, end: date, wf_start: date) -> dict:
                                                               {"top_n": 20, "lookback": 60}],
                                      BacktestConfig(wf_start, end), train_days=120, test_days=60)
         out["walk_forward"] = {"seconds": round(time.monotonic() - t0, 1), "windows": wf["windows"],
-                               "oos_metrics": wf["oos_metrics"]}
+                               "oos_metrics": wf["oos_metrics"], "costs_total": wf["costs_total"],
+                               "evaluation": wf["evaluation"], "results_hash": wf["results_hash"]}
+        t0 = time.monotonic()
+        oos = evaluation.out_of_sample(s, "ma_trend_momentum", [{"top_n": 10, "lookback": 20},
+                                                                {"top_n": 20, "lookback": 60}],
+                                       BacktestConfig(wf_start, end))
+        out["out_of_sample"] = {"seconds": round(time.monotonic() - t0, 1), "split": oos["split"],
+                                "selected_params": oos["selected_params"],
+                                "parameter_search": oos["parameter_search"],
+                                **{k: {"metrics": oos[k]["metrics"], "evaluation": oos[k]["evaluation"]}
+                                   for k in ("validation", "test") if k in oos}}
     rd = get_settings().report_dir
     if rd:
         os.makedirs(os.path.join(rd, "backtests"), exist_ok=True)

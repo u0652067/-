@@ -70,6 +70,12 @@ class BacktestRun(Base, TimestampMixin):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     parent_run_id: Mapped[int | None] = mapped_column(ForeignKey("backtest_runs.id"))
     disclaimer: Mapped[str | None] = mapped_column(Text)
+    dividend_mode: Mapped[str | None] = mapped_column(String(32))
+    benchmark_index: Mapped[str | None] = mapped_column(String(64))
+    benchmark_kind: Mapped[str | None] = mapped_column(String(24))
+    usable_for_evaluation: Mapped[bool | None]
+    evaluation: Mapped[dict] = mapped_column(JSONB, default=dict)
+    data_manifest: Mapped[dict] = mapped_column(JSONB, default=dict)
 
 
 class BacktestTrade(Base):

@@ -27,6 +27,15 @@ from aqt.research.strategies import CashBaseline, EqualWeightLiquid, MaTrendMome
 
 NO_SLIP = CostModel(slippage_tiers=((0, 0),))
 START = date(2024, 1, 1)
+READY = {"technical_backtest_ready": True, "fundamental_backtest_ready": False, "coverage_complete": True,
+         "quality_status": "REVIEWED_WITH_EXCLUSIONS"}
+
+
+@pytest.fixture(autouse=True)
+def ready(engine):
+    """The engine fails closed without a readiness record; tests start from a 'ready' database."""
+    from aqt.jobs.runtime import set_state
+    set_state(engine, "data_readiness", READY)
 
 
 def _days(n):
@@ -86,7 +95,8 @@ class Fixed(Strategy):
 
 
 def _cfg(**kw):
-    return BacktestConfig(DAYS[0], DAYS[-1], initial_cash=1_000_000, cost_model=kw.pop("cm", NO_SLIP), **kw)
+    return BacktestConfig(DAYS[0], DAYS[-1], initial_cash=kw.pop("cash", 1_000_000), cost_model=kw.pop("cm", NO_SLIP),
+                          **kw)
 
 
 def _run(engine, ids, schedule, **kw):
@@ -130,12 +140,26 @@ def test_limit_up_at_open_blocks_buy_and_limit_down_blocks_sell(engine):
     assert sells[0]["date"] == str(DAYS[71])  # retried and filled the next day
 
 
-def test_volume_participation_cap_and_board_lots(engine):
-    ids = _make(engine, {"3333": {66: (100.0, 100.0, 20_000)}})  # 5% of 20,000 = 1,000 shares
-    res = _run(engine, ids, {65: {"3333": 0.5}})
+def test_volume_participation_cap_uses_history_known_at_decision(engine):
+    # 200,000 shares/day on the 20 days up to the decision day: 5% = 10,000 shares (the order is 50,000)
+    ids = _make(engine, {"3333": {i: (100.0, 100.0, 200_000) for i in range(46, 66)}})
+    res = _run(engine, ids, {65: {"3333": 0.5}}, cash=10_000_000)
     buy = next(f for f in res.fills if f["type"] == "BUY")
-    assert buy["shares"] == 1000 and buy["partial_of"] == 5000
+    assert buy["shares"] == 10_000 and buy["partial_of"] == 50_000 and buy["date"] == str(DAYS[66])
     assert all(f["shares"] % 1000 == 0 for f in res.fills if f["type"] == "BUY")
+
+
+def test_fill_day_volume_never_changes_the_open_fill(engine):
+    """The fill day's full-day volume is only known after the close: it must not size or admit an order."""
+    ids = _make(engine, {"3434": {66: (100.0, 100.0, 1_000_000)}})
+    base = _run(engine, ids, {65: {"3434": 0.5}})
+    with session_scope(engine) as s:
+        for v in (0, 1, 10_000_000):  # T+1 full-day volume: none, tiny, huge
+            s.execute(update(DailyPrice).where(DailyPrice.security_id == ids["3434"],
+                                               DailyPrice.trade_date == DAYS[66]).values(volume=v, turnover=v * 100))
+            s.flush()
+            r = run_backtest(s, Fixed(params={"ids": ids}, schedule={65: {"3434": 0.5}}), _cfg())
+            assert [f for f in r.fills if f["type"] == "BUY"] == [f for f in base.fills if f["type"] == "BUY"]
 
 
 # ------------------------------------------------------------------ universe / restrictions / delisting
@@ -157,11 +181,21 @@ def test_restricted_or_ineligible_stocks_are_never_bought(engine):
     assert {f["sid"] for f in res.fills if f["type"] == "BUY"} == {ids["6666"]}
 
 
-def test_delisted_holding_is_liquidated_at_last_close(engine):
+def test_untradable_holding_is_never_exited_from_hindsight_and_run_is_unusable(engine):
+    """No exit from 'no later quotes' / Security.status: the holding freezes and the run is flagged."""
     ids = _make(engine, {"7777": {"_last": 70, 70: (95.0, 95.0, 1_000_000)}, "8888": {}}, {"7777": "DELISTED"})
-    res = _run(engine, ids, {65: {"7777": 0.4}})
-    t = next(t for t in res.trades if t["sid"] == ids["7777"])
-    assert t["exit_reason"] == "delisted" and t["exit_price"] == 95.0 and t["exit_date"] == str(DAYS[71])
+    res = _run(engine, ids, {65: {"7777": 0.4}, 72: {}})  # tries to sell after the quotes stop
+    sid = ids["7777"]
+    assert not any(f["type"] == "SELL" and f["sid"] == sid for f in res.fills)
+    assert any(r["sid"] == sid and r["reason"] == "no_open_on_fill_day" for r in res.rejections)
+    t = next(t for t in res.trades if t["sid"] == sid)
+    assert t["exit_reason"] == "end_of_test_mark"  # valued, not traded
+    ev = res.evaluation
+    assert ev["usable_for_evaluation"] is False and res.metrics["usable_for_evaluation"] is False
+    h = next(x for x in ev["untradable_holdings"] if x["sid"] == sid)
+    assert h["from"] == str(DAYS[71]) and h["resolved"] is False
+    # the same run without the stale holding is usable
+    assert _run(engine, ids, {65: {"8888": 0.4}}).evaluation["usable_for_evaluation"] is True
 
 
 def test_cash_dividend_preserves_value_through_ex_date(engine):
@@ -174,6 +208,28 @@ def test_cash_dividend_preserves_value_through_ex_date(engine):
     eq = {d: e for d, e, _, _ in res.equity_curve}
     assert eq[str(DAYS[70])] == pytest.approx(eq[str(DAYS[69])], abs=1)  # no artificial 5% loss
     assert any(f["type"] == "CORPORATE_ACTION" for f in res.fills)
+
+
+def test_corporate_action_published_after_the_period_cannot_change_results(engine):
+    ids = _make(engine, {"9191": {**{i: (95.0, 95.0, 1_000_000) for i in range(70, 80)}}})
+    strat = Fixed(params={"ids": ids}, schedule={65: {"9191": 0.5}})
+    cfg = BacktestConfig(DAYS[0], DAYS[75], initial_cash=1_000_000, cost_model=NO_SLIP)
+    with session_scope(engine) as s:
+        before = run_backtest(s, strat, cfg)
+    with session_scope(engine) as s:  # ex-date inside the period, but only published after it ended
+        s.add(CorporateAction(security_id=ids["9191"], ex_date=DAYS[70], action_type="DIV", prev_close=D("100"),
+                              ref_price=D("95"), source="SYNTHETIC",
+                              available_at=datetime.combine(DAYS[77], time(8), tzinfo=TPE)))
+    with session_scope(engine) as s:
+        after = run_backtest(s, strat, cfg)
+        assert after.results_hash() == before.results_hash()
+        h = DataView(s, DAYS[75]).history([ids["9191"]], 30)
+        assert h[h.d < DAYS[70]].adj_close.iloc[-1] == pytest.approx(100.0)  # no adjustment from the future
+    with session_scope(engine) as s:  # once public, the adjustment applies (and is visible to the view)
+        later = run_backtest(s, strat, BacktestConfig(DAYS[0], DAYS[79], initial_cash=1_000_000, cost_model=NO_SLIP))
+        assert any(f["type"] == "CORPORATE_ACTION" and f["date"] == str(DAYS[77]) for f in later.fills)
+        h = DataView(s, DAYS[78]).history([ids["9191"]], 30)
+        assert h[h.d < DAYS[70]].adj_close.iloc[-1] == pytest.approx(95.0)
 
 
 # ------------------------------------------------------------------ point in time
@@ -221,16 +277,23 @@ def test_fundamentals_are_refused_in_technical_backtests(engine):
             Backtester(s, CashBaseline(), _cfg(allow_fundamentals=True))
 
 
-def test_engine_refuses_when_integrity_says_technical_not_ready(engine):
+def test_engine_fails_closed_without_explicit_readiness(engine):
     from aqt.jobs.runtime import set_state
     from aqt.research.engine import DataNotReady
     _make(engine, {"1515": {}})
-    set_state(engine, "data_readiness", {"technical_backtest_ready": False, "fundamental_backtest_ready": False,
-                                         "quality_status": "UNREVIEWED"})
+    with engine.begin() as c:
+        c.execute(text("DELETE FROM system_state WHERE key='data_readiness'"))
     with session_scope(engine) as s:
-        with pytest.raises(DataNotReady):
+        with pytest.raises(DataNotReady, match="missing"):
             Backtester(s, CashBaseline(), _cfg())
-    set_state(engine, "data_readiness", {"technical_backtest_ready": True, "fundamental_backtest_ready": False})
+    for bad in ({**READY, "technical_backtest_ready": False}, {**READY, "technical_backtest_ready": "true"},
+                {**READY, "technical_backtest_ready": None}, {**READY, "quality_status": "UNREVIEWED"},
+                {**READY, "coverage_complete": False}, {k: v for k, v in READY.items() if k != "quality_status"}):
+        set_state(engine, "data_readiness", bad)
+        with session_scope(engine) as s:
+            with pytest.raises(DataNotReady):
+                Backtester(s, CashBaseline(), _cfg())
+    set_state(engine, "data_readiness", READY)
     with session_scope(engine) as s:
         res = run_backtest(s, CashBaseline(), _cfg())
         assert res.config["data_readiness_at_run"]["fundamental_backtest_ready"] is False
@@ -249,7 +312,8 @@ def test_records_are_append_only_reproducible_and_versioned(engine):
         rid = save_run(s, strat, r1, "IN_SAMPLE", datetime.now(TPE))
         row = s.get(BacktestRun, rid)
         assert row.results_hash == r1.results_hash() and row.params_hash == strat.params_hash()
-        assert row.data_version["daily_prices"]["rows"] > 0 and len(row.data_version_hash) == 64
+        assert row.data_version["fingerprint_sha256"] == row.data_version_hash and len(row.data_version_hash) == 64
+        assert row.data_manifest["manifest"]["daily_prices"]
         assert "不構成" in row.disclaimer and row.engine_version
         assert s.scalar(select(BacktestTrade.net_pnl).where(BacktestTrade.backtest_run_id == rid)) is not None
     for stmt in (f"UPDATE backtest_runs SET metrics='{{}}' WHERE id={rid}",
@@ -264,6 +328,53 @@ def test_records_are_append_only_reproducible_and_versioned(engine):
     with session_scope(engine) as s:
         n = s.scalar(text("SELECT count(*) FROM strategy_versions"))
     assert n == 1
+
+
+def test_data_fingerprint_changes_when_one_historical_value_changes(engine):
+    from aqt.research.fingerprint import data_fingerprint
+    ids = _make(engine, {"1616": {}, "1717": {}})
+    with session_scope(engine) as s:
+        s.add(TradingRestriction(security_id=ids["1717"], restriction_type="DISPOSITION", start_date=DAYS[30],
+                                 end_date=DAYS[35], announced_date=DAYS[29], source="SYNTHETIC",
+                                 available_at=datetime.combine(DAYS[29], time(18), tzinfo=TPE)))
+    fp = lambda: data_fingerprint(session, DAYS[50], DAYS[79])  # noqa: E731
+    with session_scope(engine) as session:
+        f0 = fp()
+        assert f0 == fp() and f0["manifest"]["daily_prices"]  # deterministic, per-month manifest
+    with session_scope(engine) as session:  # one historical close, one cent
+        session.execute(update(DailyPrice).where(DailyPrice.security_id == ids["1616"],
+                                                 DailyPrice.trade_date == DAYS[10]).values(close=D("100.01")))
+    with session_scope(engine) as session:
+        f1 = fp()
+        assert f1["sha256"] != f0["sha256"]
+        changed = [m for m, h in f1["manifest"]["daily_prices"].items() if f0["manifest"]["daily_prices"][m] != h]
+        assert changed == [DAYS[10].strftime("%Y-%m")]
+    with session_scope(engine) as session:  # one restriction end date
+        session.execute(update(TradingRestriction).values(end_date=DAYS[36]))
+    with session_scope(engine) as session:
+        f2 = fp()
+        assert f2["sha256"] != f1["sha256"] and f2["manifest"]["daily_prices"] == f1["manifest"]["daily_prices"]
+
+
+def test_dividend_mode_and_benchmark_are_recorded_and_never_mixed(engine):
+    from aqt.models import MarketIndex
+    ids = _make(engine, {"1818": {}})
+    with session_scope(engine) as s:  # only the PRICE index exists: no excess return may be computed against it
+        for i, d in enumerate(DAYS):
+            s.add(MarketIndex(index_code="TAIEX", trade_date=d, name="SYN", close=D(str(10000 + i)), source="SYNTHETIC",
+                              available_at=datetime.combine(d, time(14, 30), tzinfo=TPE)))
+    strat = Fixed(params={"ids": ids}, schedule={65: {"1818": 0.5}})
+    with session_scope(engine) as s:
+        res = run_backtest(s, strat, _cfg())
+        assert res.config["dividend_mode"] == "TOTAL_RETURN_REINVEST" and res.config["benchmark_kind"] == "total_return"
+        assert "benchmark_total_return" not in res.metrics and "excess_return_vs_benchmark" not in res.metrics
+        assert res.benchmark["price_index_reference"]["comparable"] is False
+        rid = save_run(s, strat, res, "IN_SAMPLE", datetime.now(TPE))
+        row = s.get(BacktestRun, rid)
+        assert row.dividend_mode == "TOTAL_RETURN_REINVEST" and row.benchmark_kind == "total_return"
+        assert row.usable_for_evaluation is True and row.data_manifest["sha256"] == row.data_version_hash
+    with pytest.raises(ValueError):
+        BacktestConfig(DAYS[0], DAYS[-1], dividend_mode="CASH")
 
 
 # ------------------------------------------------------------------ splits / walk-forward / metrics
@@ -288,6 +399,15 @@ def test_walk_forward_and_oos_end_to_end(engine, fetcher, synthetic_market):
         wf = walk_forward(s, "ma_trend_momentum", grid, base, train_days=15, test_days=5)
         oos = out_of_sample(s, "ma_trend_momentum", grid, base)
     assert wf["windows"] and all(w["selected_params"] in grid for w in wf["windows"])
+    ws = wf["windows"]
+    assert ws[0]["start_equity"] == 5_000_000
+    for a, b in zip(ws, ws[1:]):  # each window starts from the previous actual end, no rescaling
+        assert b["start_equity"] == pytest.approx(a["end_equity"], abs=1e-6)
+    assert wf["oos_metrics"]["final_equity"] == pytest.approx(ws[-1]["end_equity"], abs=0.01)
+    for k in ("commission", "tax", "slippage_vs_open", "end_mark_selling_costs"):
+        assert wf["costs_total"][k] == pytest.approx(sum(w["costs"][k] for w in ws), abs=1e-6)
+    assert wf["oos_metrics"]["costs"]["commission"] == pytest.approx(wf["costs_total"]["commission"])
+    assert sum(1 for w in ws[:-1] if w["costs"]["end_mark_selling_costs"]) == 0  # only the last window marks
     assert oos["selected_params"] in grid and "test" in oos and "validation" in oos
     with session_scope(engine) as s:
         summary = s.get(BacktestRun, wf["summary_run_id"])

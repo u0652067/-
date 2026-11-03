@@ -50,6 +50,8 @@ def compute_metrics(equity_curve: list, trades: list, fills: list, initial_cash:
     n = len(trades)
     commission = sum(float(f.get("commission", 0)) for f in fills if f.get("type") in ("BUY", "SELL"))
     tax = sum(float(f.get("tax", 0)) for f in fills if f.get("type") in ("BUY", "SELL"))
+    # selling costs deducted when the open book is valued at the end (END_MARK, not an execution)
+    end_mark = sum(float(f.get("commission", 0)) + float(f.get("tax", 0)) for f in fills if f.get("type") == "END_MARK")
     slip = sum(float(f.get("slippage_cost", 0)) for f in fills if f.get("type") in ("BUY", "SELL"))
     traded = sum(float(f["price"]) * float(f["shares"]) for f in fills if f.get("type") in ("BUY", "SELL"))
     gross_pnl = sum(t["gross_pnl"] for t in trades)
@@ -65,14 +67,16 @@ def compute_metrics(equity_curve: list, trades: list, fills: list, initial_cash:
         "profit_factor": (sum(wins) / -sum(losses)) if losses and sum(losses) < 0 else None,
         "gross_pnl_closed_trades": gross_pnl, "net_pnl_closed_trades": sum(t["net_pnl"] for t in trades),
         "costs": {"commission": commission, "tax": tax, "slippage_vs_open": slip,
-                  "total_explicit": commission + tax, "total_incl_slippage": commission + tax + slip},
+                  "total_explicit": commission + tax, "total_incl_slippage": commission + tax + slip,
+                  "end_mark_selling_costs": end_mark},
         "turnover": traded / initial_cash / years if years else None,
         "avg_exposure": sum(r[3] for r in equity_curve) / len(equity_curve),
         "net_of_costs": True,
     }
-    if benchmark and benchmark.get("curve"):
+    if benchmark and benchmark.get("curve") and len(benchmark["curve"]) > 1:
         b = [c for _, c in benchmark["curve"]]
         out["benchmark_total_return"] = b[-1] / b[0] - 1
         out["excess_return_vs_benchmark"] = total - out["benchmark_total_return"]
         out["benchmark_max_drawdown"] = max_drawdown(b)[0]
+        out["benchmark"] = {"index": benchmark.get("index"), "kind": benchmark.get("kind")}
     return out
