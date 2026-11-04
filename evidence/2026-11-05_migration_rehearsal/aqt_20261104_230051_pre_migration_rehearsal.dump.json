@@ -1,0 +1,21 @@
+﻿{
+    "file":  "aqt_20261104_230051_pre_migration_rehearsal.dump",
+    "created_at":  "2026-11-04T23:07:35.4864601+08:00",
+    "bytes":  1620895745,
+    "sha256":  "dac821c7e4fafcfd9be90958ab5ea9b2e96854c88fd1b904c328af02fdf618be",
+    "row_counts":  {
+                       "trading_calendar":  4094,
+                       "job_runs":  2071,
+                       "corporate_actions":  17401,
+                       "securities":  55634,
+                       "raw_payloads":  35281,
+                       "monthly_revenues":  163697,
+                       "market_indices":  405232,
+                       "valuations":  3414090,
+                       "institutional_trades":  3567861,
+                       "technical_indicators":  3956015,
+                       "margin_trades":  3628210,
+                       "daily_prices":  4019291
+                   },
+    "verified_restore":  null
+}
