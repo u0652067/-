@@ -1,0 +1,557 @@
+
+=== [2026-11-05 00:27:44] R0 production state before ===
+/aqt-api-1 image=sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 started=2026-11-04T13:07:30.052277428Z restarts=0
+/aqt-scheduler-1 image=sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 started=2026-11-04T13:07:30.062965006Z restarts=0
+/aqt-db-1 image=sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a started=2026-11-04T13:07:30.066915011Z restarts=0
+0003
+
+=== [2026-11-05 00:27:45] R1 production backup + verified restore, all tables (production stays running, read only) ===
+Dumping database to backups\aqt_20261105_002745_pre_rehearsal2.dump ...
+Verifying: restoring into scratch database aqt_verify ...
+NOTICE:  database "aqt_verify" does not exist, skipping
+警告: Row counts differ after restore (live db may have changed meanwhile): system_logs
+Backup OK: E:\自我成長股票分析\backups\aqt_20261105_002745_pre_rehearsal2.dump (1545.8 MB, sha256 4f13f1f6bb0a01484c7d7ae802bf8ee0e2e5370476a7a8f26118056731ad3988)
+
+real	11m31.725s
+user	0m0.015s
+sys	0m0.000s
+aqt_20261105_002745_pre_rehearsal2.dump
+sha256 4f13f1f6bb0a01484c7d7ae802bf8ee0e2e5370476a7a8f26118056731ad3988 bytes 1620895793
+tables in manifest 43 rows 19449260 verified False differs ['system_logs']
+
+=== [2026-11-05 00:39:17] R2 read-only audit of every production table with the PR image ===
+time="2026-11-05T00:39:17+08:00" level=warning msg="Found orphan containers (aqt-gap) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container aqt-api-run-6d10fa5969ba Creating 
+ Container aqt-api-run-6d10fa5969ba Created 
+2026-11-05 00:39:18,629 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 00:39:18,630 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 00:39:18,631 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 00:39:18,632 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 00:39:18,633 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 00:39:18,633 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 00:39:18,634 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+
+real	0m13.787s
+user	0m0.000s
+sys	0m0.060s
+
+=== [2026-11-05 00:39:30] S0 build sandbox ===
+sandbox differs from the PR only in: project name, volume name, ports, and accepting the pr- tag
+aqtsb_pgdata
+ Network aqtsb_default Creating 
+ Network aqtsb_default Creating 
+ Network aqtsb_default Created 
+ Network aqtsb_default Created 
+ Container aqtsb-db-1 Creating 
+ Container aqtsb-db-1 Created 
+ Container aqtsb-db-1 Starting 
+ Container aqtsb-db-1 Started 
+
+=== [2026-11-05 00:39:48] A1 restore into sandbox PostgreSQL ===
+
+real	3m41.445s
+user	0m0.030s
+sys	0m0.061s
+sandbox alembic_version: 0003
+
+=== [2026-11-05 00:43:30] A2 every table: restored copy vs production ===
+ Container aqtsb-api-run-21b61d71237d Creating 
+ Container aqtsb-api-run-21b61d71237d Created 
+2026-11-05 00:43:34,439 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 00:43:34,440 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 00:43:34,441 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 00:43:34,442 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 00:43:34,443 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 00:43:34,444 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 00:43:34,444 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+audit_T0.json 42 tables 19449258 rows
+
+real	0m14.151s
+user	0m0.030s
+sys	0m0.092s
+ Container aqtsb-api-run-65ec72e2f418 Creating 
+ Container aqtsb-api-run-65ec72e2f418 Created 
+{
+  "tables_compared": 42,
+  "rows_compared": 19449259,
+  "problems": [
+    "system_logs: rows 252 -> 251"
+  ],
+  "identical": false,
+  "new_tables": []
+}
+
+-> compare exit 1
+
+=== [2026-11-05 00:43:47] A3 upgrade 0003 -> 0005 with the immutable main image aqt-backend:main-cbd07ba67732 (main's CLI has no flag yet, so plain init-db) ===
+ Container aqtsb-api-run-4eaf96a58666 Creating 
+ Container aqtsb-api-run-4eaf96a58666 Created 
+2026-11-05 00:43:48,937 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 00:43:48,938 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 00:43:48,938 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 00:43:48,939 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 00:43:48,941 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 00:43:48,941 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 00:43:48,942 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, PHASE 2: reproducible, append-only backtest records
+INFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, Point-in-time audit of data-quality exclusions; flags for backtests affected by later discoveries
+
+real	0m2.408s
+user	0m0.030s
+sys	0m0.046s
+sandbox alembic_version: 0005
+
+=== [2026-11-05 00:43:50] A4 every table after upgrade, on the columns that existed before ===
+ Container aqtsb-api-run-fad132675f46 Creating 
+ Container aqtsb-api-run-fad132675f46 Created 
+2026-11-05 00:43:51,748 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 00:43:51,749 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 00:43:51,749 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 00:43:51,750 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 00:43:51,751 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 00:43:51,751 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 00:43:51,752 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+audit_T1.json 43 tables 19449258 rows
+
+real	0m12.031s
+user	0m0.060s
+sys	0m0.045s
+ Container aqtsb-api-run-63dbc562d1c2 Creating 
+ Container aqtsb-api-run-63dbc562d1c2 Created 
+{
+  "tables_compared": 42,
+  "rows_compared": 19449258,
+  "problems": [],
+  "identical": true,
+  "new_tables": [
+    "backtest_run_invalidations"
+  ]
+}
+-> compare exit 0
+
+=== [2026-11-05 00:44:04] A5 schema checks ===
+NULLs known_at/effective_at/detection_method/rows: 0|0|0|5837
+triggers: 28
+backtest_runs|backtest_runs_append_only
+backtest_runs|backtest_runs_no_truncate
+backtest_trades|backtest_trades_append_only
+backtest_trades|backtest_trades_no_truncate
+backtest_run_invalidations|backtest_run_invalidations_append_only
+backtest_run_invalidations|backtest_run_invalidations_no_truncate
+latest trade date 2026-11-04
+
+=== [2026-11-05 00:44:06] A6 integrity-check on main image ===
+ Container aqtsb-api-run-a2d4aa35d0e4 Creating 
+ Container aqtsb-api-run-a2d4aa35d0e4 Created 
+exit 0
+{'generated_at': '2026-11-04T16:44:08+00:00', 'window': '2019-01-01..2026-11-04', 'safe_mode': None, 'saved_to': '/data/reports/integrity/integrity_20261104T164412Z.json'}
+readiness None
+
+=== [2026-11-05 00:44:14] A7 start API and scheduler from main image on 0005; force a real catch-up by removing the last 3 daily_update records in the sandbox ===
+daily_update|2026-11-03 22:15:00.016926+08
+daily_update|2026-11-04 22:15:00.05388+08
+daily_update|2026-11-04 21:07:34.61821+08
+DELETE 3
+ Container aqtsb-scheduler-1 Creating 
+ Container aqtsb-api-1 Creating 
+ Container aqtsb-api-1 Created 
+ Container aqtsb-scheduler-1 Created 
+ Container aqtsb-scheduler-1 Starting 
+ Container aqtsb-api-1 Starting 
+ Container aqtsb-scheduler-1 Started 
+ Container aqtsb-api-1 Started 
+{
+    "status": "ok",
+    "trading_mode": "SIMULATION",
+    "safe_mode": {
+        "on": false
+    },
+    "data_readiness": {
+        "window": "2019-01-01..2026-11-04",
+        "checked_at": "2026-11-04T16:44:08+00:00",
+        "quality_status": "REVIEWED_WITH_EXCLUSIONS",
+        "coverage_complete": false,
+        "technical_backtest_ready": false,
+        "fundamental_backtest_ready": false,
+        "fundamental_not_ready_reason": "618 financial statements lack a verified publication time"
+    },
+    "latest_price_date": "2026-11-04",
+    "hours_since_latest_price_date": 16.738469717222223,
+    "last_daily_update": {
+        "job_name": "daily_update",
+        "status": "RUNNING",
+        "finished_at": null
+    },
+    "sources_down": [],
+    "realtime_quotes": {
+        "available": false,
+        "note": "\u672a\u63a5\u5165\u5408\u6cd5\u6388\u6b0a\u5373\u6642\u884c\u60c5\uff1b\u76e4\u5f8c\u8cc7\u6599\u70ba\u4ea4\u6613\u6240\u516c\u958b\u8cc7\u6599\uff0c\u76e4\u4e2d\u50c5\u6709\u5ef6\u9072\u5feb\u7167"
+    }
+}
+scheduler-1  | 2026-11-05 00:44:17,134 INFO aqt [scheduler] scheduler starting; running catch-up
+scheduler-1  | 2026-11-05 00:45:36,934 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+scheduler-1  | 2026-11-05 00:45:36,935 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+scheduler-1  | 2026-11-05 00:45:36,935 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+scheduler-1  | 2026-11-05 00:45:36,936 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+scheduler-1  | 2026-11-05 00:45:36,938 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+scheduler-1  | 2026-11-05 00:45:36,939 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+scheduler-1  | 2026-11-05 00:45:36,940 INFO apscheduler.scheduler Added job "job_securities" to job store "default"
+scheduler-1  | 2026-11-05 00:45:36,940 INFO apscheduler.scheduler Added job "job_daily_eod" to job store "default"
+scheduler-1  | 2026-11-05 00:45:36,941 INFO apscheduler.scheduler Added job "job_late_datasets" to job store "default"
+scheduler-1  | 2026-11-05 00:45:36,941 INFO apscheduler.scheduler Added job "job_fundamentals" to job store "default"
+scheduler-1  | 2026-11-05 00:45:36,942 INFO apscheduler.scheduler Added job "job_calendar" to job store "default"
+scheduler-1  | 2026-11-05 00:45:36,942 INFO apscheduler.scheduler Added job "job_heartbeat" to job store "default"
+scheduler-1  | 2026-11-05 00:45:36,943 INFO apscheduler.scheduler Scheduler started
+daily_update|SUCCESS|2026-11-05 00:44:17.256865+08|2026-11-05 00:45:36.929939+08
+sync_fundamentals|SUCCESS|2026-11-03 19:30:00.015344+08|2026-11-03 19:30:10.673863+08
+daily_update|SUCCESS|2026-11-03 17:45:00.016491+08|2026-11-03 17:46:24.139107+08
+sync_securities|SUCCESS|2026-11-03 07:40:00.04961+08|2026-11-03 07:40:14.695071+08
+daily_update|RUNNING|2026-11-02 22:15:00.198818+08|
+sync_fundamentals|SUCCESS|2026-11-02 19:30:00.012175+08|2026-11-02 19:30:10.703865+08
+api Up 7 minutes
+db Up 11 minutes (healthy)
+scheduler Up 7 minutes
+
+=== [2026-11-05 00:51:20] A8 update-daily on main image in the sandbox ===
+ Container aqtsb-api-run-75e4be873c88 Creating 
+ Container aqtsb-api-run-75e4be873c88 Created 
+      "altered_trading_full_delivery": 24,
+      "no_trade_today": 21
+    }
+  }
+}
+exit 0
+safe_mode: 
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-api-1 Stopped 
+
+=== [2026-11-05 00:52:38] B0 guards with the PR image aqt-backend:pr-80f665a2921e: services defined by compose ===
+sandbox AQT_IMAGE=aqt-backend:pr-80f665a2921e
+db
+api
+scheduler
+
+=== [2026-11-05 00:52:39] B1 restore.ps1 with a 0005 image must restore but refuse to start services ===
+sha256 verified.
+Stopping app containers...
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-api-1 Stopped 
+ Container aqtsb-scheduler-1 Stopped 
+Restored aqt_20261105_002745_pre_rehearsal2.dump. Database schema: 0003; aqt-backend:pr-80f665a2921e expects: 0005
+Restored, but AQT_IMAGE does not match the restored schema: api and scheduler stay stopped and nothing was migrated. Se
+t AQT_IMAGE to the release of schema 0003 (scripts\build-release.ps1 -Commit <commit>), then run scripts\start.ps1.
+位於 E:\aqt-sandbox\scripts\restore.ps1:31 字元:5
++     throw "Restored, but AQT_IMAGE does not match the restored schema ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Restored, but A...ipts\start.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Restored, but AQT_IMAGE does not match the restored schema: api and scheduler stay stopp 
+   ed and nothing was migrated. Set AQT_IMAGE to the release of schema 0003 (scripts\build-release.ps1 -Commit <commi  
+  t>), then run scripts\start.ps1.
+ 
+-> exit code 1
+-> REFUSED as expected
+sandbox alembic_version: 0003
+db Up 16 minutes (healthy)
+
+=== [2026-11-05 00:55:50] B2 start.ps1 must refuse on mismatch ===
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\ 
+   build-release.ps1.
+ 
+-> exit code 1
+-> REFUSED as expected
+sandbox alembic_version: 0003
+db Up 16 minutes (healthy)
+
+=== [2026-11-05 00:55:52] B3 plain docker compose up: services must refuse, schema must not change ===
+ Container aqtsb-db-1 Running 
+ Container aqtsb-api-1 Recreate 
+ Container aqtsb-scheduler-1 Recreate 
+ Container aqtsb-scheduler-1 Recreated 
+ Container aqtsb-api-1 Recreated 
+ Container aqtsb-db-1 Waiting 
+ Container aqtsb-db-1 Waiting 
+ Container aqtsb-db-1 Healthy 
+ Container aqtsb-db-1 Healthy 
+ Container aqtsb-api-1 Starting 
+ Container aqtsb-scheduler-1 Starting 
+ Container aqtsb-api-1 Started 
+ Container aqtsb-scheduler-1 Started 
+api-1        | 2026-11-05 00:56:14,266 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+api-1        | 2026-11-05 00:56:14,266 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+scheduler-1  | 2026-11-05 00:56:14,248 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+scheduler-1  | 2026-11-05 00:56:14,248 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+api-1        | 2026-11-05 00:56:14,337 ERROR aqt database schema is 0003 but this build (commit 80f665a2921e1b9584693f901b3eeb906818b09c) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+scheduler-1  | 2026-11-05 00:56:14,319 ERROR aqt database schema is 0003 but this build (commit 80f665a2921e1b9584693f901b3eeb906818b09c) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+scheduler-1  | database schema is 0003 but this build (commit 80f665a2921e1b9584693f901b3eeb906818b09c) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+api-1        | database schema is 0003 but this build (commit 80f665a2921e1b9584693f901b3eeb906818b09c) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+sandbox alembic_version: 0003
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-api-1 Stopped 
+ Container aqtsb-scheduler-1 Stopped 
+
+=== [2026-11-05 00:56:20] B4 migrate.ps1 without approval / without backup / with both ===
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\ 
+   build-release.ps1.
+ 
+-> exit code 1
+-> REFUSED as expected
+sandbox alembic_version: 0003
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\ 
+   build-release.ps1.
+ 
+-> exit code 1
+-> REFUSED as expected
+sandbox alembic_version: 0003
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\ 
+   build-release.ps1.
+ 
+
+real	0m0.757s
+user	0m0.015s
+sys	0m0.000s
+exit 1
+sandbox alembic_version: 0003
+
+=== [2026-11-05 00:56:24] B5 downgrade allowed while no audit record exists ===
+ Container aqtsb-api-run-4aca9900200f Creating 
+ Container aqtsb-api-run-4aca9900200f Created 
+2026-11-05 00:56:25,976 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 00:56:25,979 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 00:56:25,979 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 00:56:25,980 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 00:56:25,980 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 00:56:25,981 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 00:56:25,981 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+{
+  "database_version": "0003",
+  "audit_records": {
+    "backtest_runs": 0,
+    "backtest_trades": 0,
+    "strategy_versions": 0,
+    "strategy_stage_changes": 0
+  },
+  "downgrade_allowed": true,
+  "standard_rollback": "alembic downgrade (no audit record exists)",
+  "downgrade_would_lose": {
+    "0005": [
+      "data_quality_issues.known_at / effective_at / detection_method (when each exclusion took effect)",
+      "backtest_runs.benchmark_comparable",
+exit 0
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\ 
+   build-release.ps1.
+ 
+
+real	0m0.742s
+user	0m0.000s
+sys	0m0.031s
+exit 1
+sandbox alembic_version: 0003
+schema after downgrade IDENTICAL to 0003
+ Container aqtsb-api-run-fc4d3af86aed Creating 
+ Container aqtsb-api-run-fc4d3af86aed Created 
+2026-11-05 00:56:29,342 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 00:56:29,343 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 00:56:29,344 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 00:56:29,344 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 00:56:29,345 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 00:56:29,345 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 00:56:29,346 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+audit_T2.json 42 tables 19449258 rows
+ Container aqtsb-api-run-1479c4981d6a Creating 
+ Container aqtsb-api-run-1479c4981d6a Created 
+{
+  "tables_compared": 42,
+  "rows_compared": 19449258,
+  "problems": [],
+  "identical": true,
+  "new_tables": []
+}
+-> compare exit 0
+
+=== [2026-11-05 00:56:38] B6 upgrade again, start with guards on ===
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\ 
+   build-release.ps1.
+ 
+sandbox alembic_version: 0003
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\ 
+   build-release.ps1.
+ 
+exit 1
+db Up 17 minutes (healthy)
+
+=== [2026-11-05 00:57:11] B7 write a formal backtest record: downgrade must now be refused ===
+ Container aqtsb-api-run-8f92151022bc Creating 
+ Container aqtsb-api-run-8f92151022bc Created 
+2026-11-05 00:57:12,333 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 00:57:12,334 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 00:57:12,335 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 00:57:12,335 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 00:57:12,336 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 00:57:12,336 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 00:57:12,337 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+2026-11-05 00:57:12,411 ERROR aqt database schema is 0003 but this build (commit 80f665a2921e1b9584693f901b3eeb906818b09c) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+database schema is 0003 but this build (commit 80f665a2921e1b9584693f901b3eeb906818b09c) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+
+exit 1
+ Container aqtsb-api-run-e9a0cfee755e Creating 
+ Container aqtsb-api-run-e9a0cfee755e Created 
+2026-11-05 00:57:13,845 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 00:57:13,846 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 00:57:13,847 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 00:57:13,847 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 00:57:13,848 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 00:57:13,848 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 00:57:13,849 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+{
+  "database_version": "0003",
+  "audit_records": {
+    "backtest_runs": 0,
+    "backtest_trades": 0,
+    "strategy_versions": 0,
+    "strategy_stage_changes": 0
+  },
+  "downgrade_allowed": true,
+  "standard_rollback": "alembic downgrade (no audit record exists)",
+  "downgrade_would_lose": {
+    "0005": [
+      "data_quality_issues.known_at / effective_at / detection_method (when each exclusion took effect)",
+      "backtest_runs.benchmark_comparable",
+exit 0
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:pr-80f665a2921e does not exist on this machine. Build it with scripts\ 
+   build-release.ps1.
+ 
+-> exit code 1
+-> REFUSED as expected
+sandbox alembic_version: 0003
+backtest_runs: 0
+
+=== [2026-11-05 00:57:16] B8 standard rollback: restore the pre-migration backup with the 0003 release image aqt-backend:main-7a89d6da132b ===
+sandbox AQT_IMAGE=aqt-backend:main-7a89d6da132b
+sha256 verified.
+Stopping app containers...
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-api-1 Stopped 
+Restored aqt_20261105_002745_pre_rehearsal2.dump. Database schema: 0003; aqt-backend:main-7a89d6da132b expects: 0003
+Done. api and scheduler stay stopped (-NoStart).
+
+real	3m16.501s
+user	0m0.000s
+sys	0m0.015s
+exit 0
+sandbox alembic_version: 0003
+ Container aqtsb-api-run-bb7e253fcc16 Creating 
+ Container aqtsb-api-run-bb7e253fcc16 Created 
+2026-11-05 01:00:34,134 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:00:34,135 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:00:34,136 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:00:34,136 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:00:34,137 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:00:34,137 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:00:34,138 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+audit_T3.json 42 tables 19449258 rows
+ Container aqtsb-api-run-96e82e03a4a0 Creating 
+ Container aqtsb-api-run-96e82e03a4a0 Created 
+{
+  "tables_compared": 42,
+  "rows_compared": 19449258,
+  "problems": [],
+  "identical": true,
+  "new_tables": []
+}
+-> compare exit 0
+template parsing error: template: :1: function "org" not defined
+Image aqt-backend:main-7a89d6da132b does not exist on this machine. Build it with scripts\build-release.ps1.
+位於 E:\aqt-sandbox\scripts\_common.ps1:49 字元:32
++ ... DE -ne 0) { throw "Image $image does not exist on this machine. Build ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Image aqt-backe...ld-release.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Image aqt-backend:main-7a89d6da132b does not exist on this machine. Build it with script 
+   s\build-release.ps1.
+ 
+exit 1
+db Up 21 minutes (healthy)
+scheduler-1  | 2026-11-05 00:56:14,247 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+scheduler-1  | 2026-11-05 00:56:14,248 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+scheduler-1  | 2026-11-05 00:56:14,248 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+scheduler-1  | 2026-11-05 00:56:14,248 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+scheduler-1  | 2026-11-05 00:56:14,319 ERROR aqt database schema is 0003 but this build (commit 80f665a2921e1b9584693f901b3eeb906818b09c) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+scheduler-1  | database schema is 0003 but this build (commit 80f665a2921e1b9584693f901b3eeb906818b09c) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+
+=== [2026-11-05 01:01:05] Z cleanup sandbox ===
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-api-1 Stopped 
+ Container aqtsb-api-1 Removing 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-scheduler-1 Removing 
+ Container aqtsb-api-1 Removed 
+ Container aqtsb-scheduler-1 Removed 
+ Container aqtsb-db-1 Stopping 
+ Container aqtsb-db-1 Stopped 
+ Container aqtsb-db-1 Removing 
+ Container aqtsb-db-1 Removed 
+ Network aqtsb_default Removing 
+ Network aqtsb_default Removed 
+aqtsb_pgdata
+
+=== [2026-11-05 01:01:07] R9 production state after (must equal R0) ===
+/aqt-api-1 image=sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 started=2026-11-04T13:07:30.052277428Z restarts=0
+/aqt-scheduler-1 image=sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 started=2026-11-04T13:07:30.062965006Z restarts=0
+/aqt-db-1 image=sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a started=2026-11-04T13:07:30.066915011Z restarts=0
+0003

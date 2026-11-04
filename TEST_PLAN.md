@@ -13,6 +13,19 @@ cd backend && python -m pytest -q        # 全部
 python -m pytest -q tests/test_pipeline.py -k safe_mode
 ```
 
+## 部署安全修正（2026-11-05，`test_schema_guard.py` 15 項；全套 153 passed）
+| 測試 | 驗證 |
+|---|---|
+| 版本相符通過，0003／0004 或空資料庫拒絕且不變更版本 | 不會靜默升級 |
+| `scheduler`、`api`、`update-daily`、`sync-securities`、`backtest` 在舊版本都拒絕啟動 | 守門覆蓋服務與資料庫指令 |
+| `init-db` 沒有 `--apply-migrations` 就拒絕 | migration 必須明確 |
+| 無紀錄時允許 downgrade；人工品質問題或回測紀錄存在時拒絕 | 回復政策 |
+| `table-audit` 涵蓋全部資料表，一個欄位值改變就偵測到 | 不只比筆數 |
+| 新增欄位／新表後仍以舊欄位比較 | 升級前後可比 |
+| `/api/health` 顯示 commit 與 schema | 部署狀態可見 |
+
+**只在演練驗證、無單元測試**：PowerShell 腳本（`start`、`migrate`、`restore`、`backup`、`build-release`）與 compose 設定。演練曾抓到單元測試抓不到的腳本錯誤，所以腳本改動後必須重跑沙箱演練。
+
 ## PHASE 1 缺口修正（2026-11-02，`test_gap_fixes.py` 10 項）
 2026-11-03 Docker：**107 passed**。
 | 測試 | 驗證內容 |

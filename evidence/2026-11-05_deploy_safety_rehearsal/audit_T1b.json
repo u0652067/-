@@ -1,0 +1,729 @@
+{
+ "account_settings": {
+  "rows": 0,
+  "columns": [
+   "account_id",
+   "risk_level",
+   "position_size_pct",
+   "max_positions",
+   "max_daily_loss_pct",
+   "max_drawdown_pct",
+   "stop_loss_pct",
+   "take_profit_pct",
+   "trailing_stop_pct",
+   "allow_day_trade",
+   "updated_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "account_settings_history": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "account_id",
+   "settings",
+   "changed_by",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "backtest_run_invalidations": {
+  "rows": 0,
+  "new_table": true
+ },
+ "backtest_runs": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "strategy_version_id",
+   "kind",
+   "period_start",
+   "period_end",
+   "universe_rule",
+   "cost_model",
+   "metrics",
+   "regime_metrics",
+   "equity_curve",
+   "data_snapshot_at",
+   "code_ref",
+   "status",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "backtest_trades": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "backtest_run_id",
+   "security_id",
+   "entry_date",
+   "exit_date",
+   "entry_price",
+   "exit_price",
+   "quantity",
+   "costs",
+   "net_pnl",
+   "exit_reason"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "cash_ledger": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "account_id",
+   "entry_time",
+   "entry_type",
+   "amount",
+   "balance_after",
+   "fill_id",
+   "settlement_date",
+   "prev_hash",
+   "row_hash"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "closed_trades": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "account_id",
+   "security_id",
+   "strategy_version_id",
+   "entry_time",
+   "exit_time",
+   "quantity",
+   "entry_cost",
+   "exit_proceeds",
+   "total_costs",
+   "net_pnl",
+   "return_pct",
+   "holding_days",
+   "exit_reason",
+   "entry_fill_ids",
+   "exit_fill_ids"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "corporate_actions": {
+  "rows": 17401,
+  "columns": [
+   "id",
+   "security_id",
+   "ex_date",
+   "action_type",
+   "prev_close",
+   "ref_price",
+   "cash_dividend",
+   "stock_dividend_ratio",
+   "source",
+   "raw_payload_id",
+   "available_at"
+  ],
+  "content_hash": "f20895af7056b16d9d1ed563ddf839df4b546c9632b254183c5e9e5d5c6b3d6a"
+ },
+ "daily_prices": {
+  "rows": 4019291,
+  "columns": [
+   "security_id",
+   "trade_date",
+   "open",
+   "high",
+   "low",
+   "close",
+   "change",
+   "volume",
+   "turnover",
+   "transactions",
+   "prev_close",
+   "limit_up",
+   "limit_down",
+   "adj_factor",
+   "is_suspended",
+   "source",
+   "raw_payload_id",
+   "available_at",
+   "fetched_at"
+  ],
+  "content_hash": "798436821e4a7d0b71e69d9c9e3c667ed24ca22456667ffb7fa773593533d6d4"
+ },
+ "data_quality_issues": {
+  "rows": 5837,
+  "columns": [
+   "id",
+   "check_name",
+   "severity",
+   "dataset",
+   "security_id",
+   "trade_date",
+   "detail",
+   "resolved",
+   "created_at",
+   "classification",
+   "blocks_backtest",
+   "reviewed_at"
+  ],
+  "content_hash": "98ec9ad4e9042a048637a17739d8c0677faeb8f5c7eeb0f2406a278df9f8e481"
+ },
+ "data_source_status": {
+  "rows": 33,
+  "columns": [
+   "source",
+   "dataset",
+   "status",
+   "last_success_at",
+   "last_failure_at",
+   "last_error",
+   "consecutive_failures",
+   "latest_data_date",
+   "updated_at"
+  ],
+  "content_hash": "86cd3cf7dfaa9f5eb7bd162377b648f833b77710ee52e07d49847fe892e4839e"
+ },
+ "equity_snapshots": {
+  "rows": 0,
+  "columns": [
+   "account_id",
+   "snap_date",
+   "cash",
+   "market_value",
+   "total_equity",
+   "realized_pnl",
+   "unrealized_pnl",
+   "peak_equity",
+   "drawdown_pct",
+   "benchmark_close"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "fills": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "order_id",
+   "account_id",
+   "security_id",
+   "side",
+   "fill_time",
+   "reference_price",
+   "fill_price",
+   "quantity",
+   "gross_amount",
+   "commission",
+   "tax",
+   "slippage_cost",
+   "net_amount",
+   "price_source",
+   "price_delay_seconds",
+   "prev_hash",
+   "row_hash"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "financial_statements": {
+  "rows": 55347,
+  "columns": [
+   "security_id",
+   "fiscal_year",
+   "fiscal_quarter",
+   "basis",
+   "revenue",
+   "gross_profit",
+   "operating_income",
+   "net_income",
+   "eps",
+   "gross_margin",
+   "operating_margin",
+   "total_assets",
+   "total_liabilities",
+   "equity",
+   "published_date",
+   "available_at",
+   "source",
+   "raw_payload_id",
+   "published_at",
+   "published_basis",
+   "pit_reliable"
+  ],
+  "content_hash": "5b2c990a4fcbc29ff472559517adc49c1a8a7a4ad736f1ab5bbacdd5cdd549cf"
+ },
+ "institutional_trades": {
+  "rows": 3567861,
+  "columns": [
+   "security_id",
+   "trade_date",
+   "foreign_buy",
+   "foreign_sell",
+   "foreign_net",
+   "foreign_dealer_net",
+   "trust_buy",
+   "trust_sell",
+   "trust_net",
+   "dealer_net",
+   "dealer_self_net",
+   "dealer_hedge_net",
+   "total_net",
+   "source",
+   "raw_payload_id",
+   "available_at"
+  ],
+  "content_hash": "4947ae98e2d7373fd42c9ad6493ecdc656df94099c20377f807c738bc35ed553"
+ },
+ "intraday_quotes": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "security_id",
+   "quote_time",
+   "price",
+   "cum_volume",
+   "best_bid",
+   "best_ask",
+   "source",
+   "delay_seconds",
+   "fetched_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "job_runs": {
+  "rows": 2071,
+  "columns": [
+   "id",
+   "job_name",
+   "started_at",
+   "finished_at",
+   "status",
+   "params",
+   "result",
+   "error"
+  ],
+  "content_hash": "0d704f1e4b1d5451a24020c50522d426b5ab227c97dea26258e76c3b3c1635f0"
+ },
+ "llm_calls": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "purpose",
+   "model",
+   "input_tokens",
+   "output_tokens",
+   "cost_usd",
+   "latency_ms",
+   "prompt_sha256",
+   "status",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "margin_trades": {
+  "rows": 3628210,
+  "columns": [
+   "security_id",
+   "trade_date",
+   "margin_buy",
+   "margin_sell",
+   "margin_redeem",
+   "margin_balance_prev",
+   "margin_balance",
+   "margin_limit",
+   "short_cover",
+   "short_sell",
+   "short_redeem",
+   "short_balance_prev",
+   "short_balance",
+   "short_limit",
+   "offset",
+   "note",
+   "source",
+   "raw_payload_id",
+   "available_at"
+  ],
+  "content_hash": "3a58f0586cd85b2742081dd99fe89adf07f9b6dd1b562c4c705ab060a81dc7fb"
+ },
+ "market_indices": {
+  "rows": 405232,
+  "columns": [
+   "index_code",
+   "trade_date",
+   "name",
+   "close",
+   "change",
+   "change_pct",
+   "source",
+   "raw_payload_id",
+   "available_at"
+  ],
+  "content_hash": "f838d40d02370f2103b608acea59c001d75de6184f06d1dcb5a5786ba1ba7c8e"
+ },
+ "market_regimes": {
+  "rows": 0,
+  "columns": [
+   "regime_date",
+   "regime",
+   "trend_score",
+   "volatility",
+   "breadth",
+   "detail"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "monthly_revenues": {
+  "rows": 163697,
+  "columns": [
+   "security_id",
+   "period",
+   "revenue",
+   "revenue_prev_month",
+   "revenue_last_year",
+   "mom_pct",
+   "yoy_pct",
+   "cum_revenue",
+   "cum_revenue_last_year",
+   "cum_yoy_pct",
+   "published_date",
+   "available_at",
+   "source",
+   "raw_payload_id"
+  ],
+  "content_hash": "2b8c74d912dda5bcb0f1caedd9e37d1dfcfc3bbab476f5597bc1a96734feaf7b"
+ },
+ "notifications": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "level",
+   "title",
+   "body",
+   "channel",
+   "sent_at",
+   "read_at",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "order_events": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "order_id",
+   "event_time",
+   "event_type",
+   "detail",
+   "prev_hash",
+   "row_hash"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "orders": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "account_id",
+   "decision_id",
+   "security_id",
+   "side",
+   "order_type",
+   "time_in_force",
+   "limit_price",
+   "quantity",
+   "filled_quantity",
+   "status",
+   "reject_reason",
+   "strategy_version_id",
+   "reason",
+   "stop_price",
+   "target_price",
+   "market_regime",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "positions": {
+  "rows": 0,
+  "columns": [
+   "account_id",
+   "security_id",
+   "quantity",
+   "avg_cost",
+   "opened_at",
+   "stop_price",
+   "target_price",
+   "strategy_version_id",
+   "updated_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "raw_payloads": {
+  "rows": 35281,
+  "columns": [
+   "id",
+   "source",
+   "dataset",
+   "url",
+   "params",
+   "data_date",
+   "fetched_at",
+   "http_status",
+   "sha256",
+   "parse_status",
+   "parse_error"
+  ],
+  "content_hash": "22858100a9eb5bb284384023d586f0537f4a41cefdc52e136abb3671f4dc3a3f"
+ },
+ "research_proposals": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "origin_review_id",
+   "weakness",
+   "hypothesis",
+   "plan",
+   "status",
+   "candidate_version_id",
+   "conclusion",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "reviews": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "period_type",
+   "period_start",
+   "period_end",
+   "title",
+   "content_md",
+   "findings",
+   "llm_call_id",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "scan_runs": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "scan_date",
+   "data_cutoff_at",
+   "universe_count",
+   "excluded_count",
+   "exclusions",
+   "scoring_version",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "securities": {
+  "rows": 55634,
+  "columns": [
+   "id",
+   "code",
+   "market",
+   "name",
+   "security_type",
+   "industry",
+   "isin",
+   "listed_date",
+   "delisted_date",
+   "status",
+   "first_seen_date",
+   "last_seen_date",
+   "updated_at",
+   "created_at"
+  ],
+  "content_hash": "312e80ad88e62e65a7892fd9fcc66dc4130cfb935e5af6ea7b5a255897028bc3"
+ },
+ "sim_accounts": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "name",
+   "mode",
+   "initial_capital",
+   "status",
+   "started_at",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "stock_scores": {
+  "rows": 0,
+  "columns": [
+   "scan_run_id",
+   "security_id",
+   "rank",
+   "total",
+   "trend",
+   "momentum",
+   "volume",
+   "chip",
+   "fundamental",
+   "risk",
+   "regime_fit",
+   "detail"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "strategies": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "code",
+   "name",
+   "horizon",
+   "description",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "strategy_stage_changes": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "strategy_version_id",
+   "from_stage",
+   "to_stage",
+   "reason",
+   "evidence",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "strategy_versions": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "strategy_id",
+   "version",
+   "parent_version_id",
+   "params",
+   "code_ref",
+   "change_reason",
+   "stage",
+   "promoted_at",
+   "retired_at",
+   "created_at"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "system_logs": {
+  "rows": 251,
+  "columns": [
+   "id",
+   "level",
+   "component",
+   "message",
+   "detail",
+   "created_at"
+  ],
+  "content_hash": "8fc1fa66a80aeaa45d022c3f9be9c1168b485b1f3c2e947ec8e7eba401a052a2"
+ },
+ "system_state": {
+  "rows": 5,
+  "columns": [
+   "key",
+   "value",
+   "updated_at"
+  ],
+  "content_hash": "b6662d8e52a9f07cb5420611fb6ede20ac44f6e4489ae1746e62f832f8219309"
+ },
+ "technical_indicators": {
+  "rows": 3956015,
+  "columns": [
+   "security_id",
+   "trade_date",
+   "ma5",
+   "ma10",
+   "ma20",
+   "ma60",
+   "k9",
+   "d9",
+   "rsi6",
+   "rsi14",
+   "macd_dif",
+   "macd_signal",
+   "macd_hist",
+   "bb_upper",
+   "bb_mid",
+   "bb_lower",
+   "vol_ma5",
+   "vol_ma20",
+   "turnover_ma20",
+   "atr14",
+   "high_20",
+   "low_20",
+   "high_60",
+   "volume_ratio",
+   "calc_version",
+   "computed_at"
+  ],
+  "content_hash": "f3bf43e696eb982854280d937aa6f7c1a42e155924100003f26f3ba5f706e9b0"
+ },
+ "trade_decisions": {
+  "rows": 0,
+  "columns": [
+   "id",
+   "account_id",
+   "decided_at",
+   "data_cutoff_at",
+   "security_id",
+   "action",
+   "strategy_version_id",
+   "market_regime",
+   "score",
+   "reasoning",
+   "analyst_inputs",
+   "risk_check",
+   "approved",
+   "planned_stop",
+   "planned_target",
+   "llm_call_id",
+   "prev_hash",
+   "row_hash"
+  ],
+  "content_hash": "ac72368a586a18c19088393573ce03074b8e8a4d8c21add8729af1890a407e52"
+ },
+ "trading_calendar": {
+  "rows": 4094,
+  "columns": [
+   "market",
+   "cal_date",
+   "is_trading_day",
+   "source",
+   "note"
+  ],
+  "content_hash": "86abd86cb01751817ee6bf4936e50e93c18c349a2767650c50f70f46751f6c5e"
+ },
+ "trading_restrictions": {
+  "rows": 118908,
+  "columns": [
+   "id",
+   "security_id",
+   "restriction_type",
+   "start_date",
+   "end_date",
+   "announced_date",
+   "detail",
+   "source",
+   "raw_payload_id",
+   "available_at"
+  ],
+  "content_hash": "5ae153f9a926413336b7336f1ad076e2e599c335e797f47d93815bca490b5189"
+ },
+ "valuations": {
+  "rows": 3414090,
+  "columns": [
+   "security_id",
+   "trade_date",
+   "pe_ratio",
+   "pb_ratio",
+   "dividend_yield",
+   "source",
+   "raw_payload_id",
+   "available_at"
+  ],
+  "content_hash": "313bc8875c1b05ca75e991b0437f2d7830cc5b4e38c60152f1c7f5a3c5bb4680"
+ }
+}

@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## [0.3.3] — 2026-11-05 — 部署安全修正（分支 `claude/deploy-safety`，待審）
+- PR #6 已合併，main `cbd07ba`。正式庫維持 0003，正式容器未重啟或重建。
+- migration 只能經 `scripts\migrate.ps1`：需要 `-IHaveApproval` 與通過驗證的備份；`migrate` 服務移到 profile；`init-db` 需 `--apply-migrations`。
+- `aqt/schema_guard.py`：版本不符時服務與資料庫指令拒絕啟動；CLI `schema-status`、`rollback-check`。
+- 不可變映像：`build-release.ps1`、`AQT_IMAGE`、revision label；移除正式服務的 `build:`；`/api/health` 顯示 commit 與 schema。
+- `aqt/table_audit.py`：全部資料表的筆數與內容雜湊；`backup.ps1 -Verify` 改比對全部資料表；`restore.ps1` 不再 migrate，新增 `-NoStart`。
+- 回復政策：有紀錄後唯一標準回復是從備份還原。
+- 隔離沙箱演練通過。第一輪抓到 PowerShell 吃掉 `docker inspect` 格式字串引號的錯誤，修正後重跑腳本步驟。
+- 測試 153 passed。
+
 ## [0.3.2] — 2026-11-04 — PHASE 2 第二輪審查修正（同分支 `claude/phase2-fixes`，PR #5 待審）
 - #1 `blocked_securities()` 的 `known_at` 改為必填；決策用 T 18:00，開盤成交用 T+1 09:00，且只看當日生效的限制。修正前有 30 筆委託被當晚才公告的處置擋下（時間洩漏）。
 - #2 migration 0005：`data_quality_issues.known_at/effective_at/detection_method`；`record_post_hoc_issue()`；只能新增的 `backtest_run_invalidations`；`run_validity()`；三欄納入資料指紋。
