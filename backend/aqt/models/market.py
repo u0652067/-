@@ -304,6 +304,12 @@ class DataQualityIssue(Base, TimestampMixin):
     classification: Mapped[str | None] = mapped_column(String(32))
     blocks_backtest: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # point-in-time audit: when the issue could be known, and from when it may exclude anything.
+    # AUTO_RULE = reproducible from the day's published data at the daily run;
+    # POST_HOC_* = found later: effective only from the discovery, past runs are flagged instead
+    known_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    effective_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    detection_method: Mapped[str] = mapped_column(String(32), nullable=False, default="AUTO_RULE")
     __table_args__ = (Index("ix_dq_issues_date", "trade_date", "check_name"),
                       Index("ix_dq_issues_blocking", "security_id", "blocks_backtest"))
 

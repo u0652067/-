@@ -74,6 +74,21 @@ def main(argv=None) -> None:
     rq = sub.add_parser("review-quality", help="G13: classify price anomalies + independent sample verification")
     rq.add_argument("--sample", type=int, default=5, help="verified samples per classification (0 = none)")
     rq.add_argument("--out")
+    bt = sub.add_parser("backtest", help="PHASE 2: technical backtest (research only, saved append-only)")
+    bt.add_argument("--strategy", required=True)
+    bt.add_argument("--start", type=_d, required=True)
+    bt.add_argument("--end", type=_d, required=True)
+    bt.add_argument("--params", default="{}", help='JSON, e.g. {"top_n": 20}')
+    bt.add_argument("--cash", type=float, default=10_000_000)
+    ev = sub.add_parser("evaluate", help="PHASE 2: chronological out-of-sample or walk-forward evaluation")
+    ev.add_argument("--mode", choices=("oos", "walk-forward"), required=True)
+    ev.add_argument("--strategy", required=True)
+    ev.add_argument("--start", type=_d, required=True)
+    ev.add_argument("--end", type=_d, required=True)
+    ev.add_argument("--grid", default="[{}]", help="JSON list of parameter sets")
+    ev.add_argument("--train-days", type=int, default=500)
+    ev.add_argument("--test-days", type=int, default=120)
+    ev.add_argument("--anchored", action="store_true")
     sub.add_parser("scheduler", help="run the background scheduler (blocking)")
     a = sub.add_parser("api")
     a.add_argument("--port", type=int, default=8000)
@@ -144,6 +159,31 @@ def main(argv=None) -> None:
         if out_dir:
             os.makedirs(out_dir, exist_ok=True)
             path = os.path.join(out_dir, f"quality_review_{datetime.now(TPE):%Y%m%dT%H%M%S}.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
+            out["saved_to"] = path
+    elif args.cmd in ("backtest", "evaluate"):
+        from aqt.research import DISCLAIMER
+        from aqt.research.engine import BacktestConfig
+        from aqt.research import evaluation as ev_mod
+        with session_scope(engine) as s:
+            if args.cmd == "backtest":
+                cfg = BacktestConfig(args.start, args.end, initial_cash=args.cash)
+                rid, res = ev_mod.run_and_save(s, args.strategy, json.loads(args.params), cfg, "IN_SAMPLE",
+                                               {"role": "manual"})
+                out = {"run_id": rid, "results_hash": res.results_hash(), "metrics": res.metrics,
+                       "rejections": len(res.rejections)}
+            else:
+                cfg = BacktestConfig(args.start, args.end)
+                grid = json.loads(args.grid)
+                out = (ev_mod.out_of_sample(s, args.strategy, grid, cfg) if args.mode == "oos" else
+                       ev_mod.walk_forward(s, args.strategy, grid, cfg, args.train_days, args.test_days,
+                                           anchored=args.anchored))
+        out["disclaimer"] = DISCLAIMER
+        rd = get_settings().report_dir
+        if rd:
+            os.makedirs(os.path.join(rd, "backtests"), exist_ok=True)
+            path = os.path.join(rd, "backtests", f"{args.cmd}_{args.strategy}_{datetime.now(TPE):%Y%m%dT%H%M%S}.json")
             with open(path, "w", encoding="utf-8") as fh:
                 json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
             out["saved_to"] = path

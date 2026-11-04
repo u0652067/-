@@ -59,6 +59,24 @@ class BacktestRun(Base, TimestampMixin):
     data_snapshot_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     code_ref: Mapped[str | None] = mapped_column(String(80))
     status: Mapped[str] = mapped_column(String(12), default="DONE")
+    # PHASE 2 reproducibility record (migration 0004); the row is append-only
+    config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    params_hash: Mapped[str | None] = mapped_column(String(64))
+    data_version: Mapped[dict] = mapped_column(JSONB, default=dict)
+    data_version_hash: Mapped[str | None] = mapped_column(String(64))
+    results_hash: Mapped[str | None] = mapped_column(String(64))
+    engine_version: Mapped[str | None] = mapped_column(String(16))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    parent_run_id: Mapped[int | None] = mapped_column(ForeignKey("backtest_runs.id"))
+    disclaimer: Mapped[str | None] = mapped_column(Text)
+    dividend_mode: Mapped[str | None] = mapped_column(String(32))
+    benchmark_index: Mapped[str | None] = mapped_column(String(64))
+    benchmark_kind: Mapped[str | None] = mapped_column(String(24))
+    usable_for_evaluation: Mapped[bool | None]
+    evaluation: Mapped[dict] = mapped_column(JSONB, default=dict)
+    data_manifest: Mapped[dict] = mapped_column(JSONB, default=dict)
+    benchmark_comparable: Mapped[bool | None]
 
 
 class BacktestTrade(Base):
@@ -74,7 +92,21 @@ class BacktestTrade(Base):
     costs: Mapped[float]
     net_pnl: Mapped[float | None]
     exit_reason: Mapped[str | None] = mapped_column(String(32))
+    entry_costs: Mapped[float | None]
+    exit_costs: Mapped[float | None]
+    gross_pnl: Mapped[float | None]
     __table_args__ = (Index("ix_backtest_trades_run", "backtest_run_id"),)
+
+
+class BacktestRunInvalidation(Base, TimestampMixin):
+    """A stored run is never edited: when data used by it is later found wrong, it is flagged here."""
+    __tablename__ = "backtest_run_invalidations"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    backtest_run_id: Mapped[int] = mapped_column(ForeignKey("backtest_runs.id"), nullable=False)
+    data_quality_issue_id: Mapped[int | None] = mapped_column(ForeignKey("data_quality_issues.id"))
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="NEEDS_RERUN")
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    __table_args__ = (Index("ix_backtest_invalidations_run", "backtest_run_id"),)
 
 
 class MarketRegime(Base):

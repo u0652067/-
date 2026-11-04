@@ -7,7 +7,9 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session, aliased
 
 from aqt.data.calendar import previous_observed_trading_date
+from aqt.data.pit import QUALITY_CHECK_TIME, at_tpe
 from aqt.models import CorporateAction, DailyPrice, DataQualityIssue, InstitutionalTrade, Security
+from aqt.models.base import utcnow
 
 LIMIT_TOLERANCE = Decimal("0.005")  # rounding head-room above the ±10% rule
 MIN_ROW_RATIO = 0.8  # today's row count vs previous trading day
@@ -85,8 +87,12 @@ def check_institutional(session: Session, d: date) -> list[Issue]:
 
 def save_issues(session: Session, issues: list[Issue]) -> int:
     for i in issues:
+        # rule-based checks are a function of the day's published data: a live system knows the result
+        # at the daily run. Post-hoc findings use quality_review.record_post_hoc_issue instead.
+        at = at_tpe(i.trade_date, QUALITY_CHECK_TIME) if i.trade_date else utcnow()
         session.add(DataQualityIssue(check_name=i.check_name, severity=i.severity, dataset=i.dataset,
-                                     security_id=i.security_id, trade_date=i.trade_date, detail=i.detail))
+                                     security_id=i.security_id, trade_date=i.trade_date, detail=i.detail,
+                                     known_at=at, effective_at=at, detection_method="AUTO_RULE"))
     return len(issues)
 
 
