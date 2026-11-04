@@ -15,11 +15,12 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from aqt.data.pit import TPE
+from aqt.data.pit import DECISION_TIME, TPE
 from aqt.data.universe import Universe, build_universe
 from aqt.models import CorporateAction, DailyPrice, MarketIndex, Security
 
-DEFAULT_DECISION_TIME = time(18, 0)  # after quotes (14:30), institutional (16:30), valuations (17:30)
+DEFAULT_DECISION_TIME = DECISION_TIME  # after quotes (14:30), institutional (16:30), valuations (17:30)
+ALL_MARKETS = ("TWSE", "TPEX")
 
 
 class FundamentalsNotAllowed(RuntimeError):
@@ -28,8 +29,9 @@ class FundamentalsNotAllowed(RuntimeError):
 
 class DataView:
     def __init__(self, session: Session, as_of: date, decision_time: time = DEFAULT_DECISION_TIME,
-                 allow_fundamentals: bool = False):
+                 allow_fundamentals: bool = False, markets: tuple[str, ...] = ALL_MARKETS):
         self._s = session
+        self.markets = tuple(markets)
         self.as_of = as_of
         self.decision_at = datetime.combine(as_of, decision_time, tzinfo=TPE)
         self._allow_fundamentals = allow_fundamentals
@@ -39,7 +41,13 @@ class DataView:
     def universe(self) -> Universe:
         """The only source of tradable candidates (restrictions, quality blocks, liquidity, history)."""
         if self._universe is None:
-            self._universe = build_universe(self._s, self.as_of)
+            u = build_universe(self._s, self.as_of, known_at=self.decision_at)
+            if set(self.markets) != set(ALL_MARKETS):  # strategy restricted to the benchmark's market
+                inside = set(self._s.scalars(select(Security.id).where(Security.market.in_(self.markets))))
+                for sid in [s for s in u.eligible if s not in inside]:
+                    u.excluded[sid] = "outside_market_scope"
+                u.eligible = [s for s in u.eligible if s in inside]
+            self._universe = u
         return self._universe
 
     # ------------------------------------------------------------------ prices

@@ -9,7 +9,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from aqt.models import (
-    BacktestRun, BacktestTrade, DailyPrice, FinancialStatement, RawPayload, Strategy as StrategyRow, StrategyVersion,
+    BacktestRun, BacktestRunInvalidation, BacktestTrade, DailyPrice, FinancialStatement, RawPayload,
+    Strategy as StrategyRow, StrategyVersion,
 )
 from aqt.research import DISCLAIMER, ENGINE_VERSION
 from aqt.research.engine import BacktestResult
@@ -86,7 +87,8 @@ def save_run(session: Session, strategy: Strategy, result: BacktestResult, kind:
         engine_version=ENGINE_VERSION, started_at=started_at, finished_at=datetime.now(timezone.utc),
         disclaimer=DISCLAIMER, dividend_mode=result.config.get("dividend_mode"),
         benchmark_index=result.config.get("benchmark_index"), benchmark_kind=result.config.get("benchmark_kind"),
-        usable_for_evaluation=result.evaluation.get("usable_for_evaluation"), evaluation=result.evaluation)
+        usable_for_evaluation=result.evaluation.get("usable_for_evaluation"), evaluation=result.evaluation,
+        benchmark_comparable=result.config.get("benchmark_comparable"))
     session.add(run)
     session.flush()
     for t in result.trades:
@@ -98,6 +100,16 @@ def save_run(session: Session, strategy: Strategy, result: BacktestResult, kind:
             exit_costs=t["exit_costs"], gross_pnl=t["gross_pnl"]))
     session.flush()
     return run.id
+
+
+def run_validity(session: Session, run_id: int) -> dict:
+    """A stored run stays as it was written; later findings about its data are listed here."""
+    flags = session.execute(select(BacktestRunInvalidation.status, BacktestRunInvalidation.reason,
+                                   BacktestRunInvalidation.data_quality_issue_id, BacktestRunInvalidation.created_at)
+                            .where(BacktestRunInvalidation.backtest_run_id == run_id)
+                            .order_by(BacktestRunInvalidation.id)).all()
+    return {"run_id": run_id, "status": "NEEDS_RERUN" if flags else "VALID",
+            "flags": [dict(status=a, reason=b, issue_id=c, created_at=str(d)) for a, b, c, d in flags]}
 
 
 def _count(rows: list[dict]) -> dict:

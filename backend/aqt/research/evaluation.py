@@ -84,7 +84,7 @@ def walk_forward(session: Session, code: str, grid: list[dict], base: BacktestCo
     if not windows:
         raise ValueError("period too short for one walk-forward window")
     started = datetime.now(timezone.utc)
-    curve, trades, fills, rejections, per_window, child_ids = [], [], [], [], [], []
+    curve, trades, fills, rejections, per_window, child_ids, rebalance_days = [], [], [], [], [], [], []
     state: PortfolioState | None = None
     usable, reasons = True, []
     for i, w in enumerate(windows):
@@ -100,6 +100,7 @@ def walk_forward(session: Session, code: str, grid: list[dict], base: BacktestCo
         trades += res.trades
         fills += res.fills
         rejections += res.rejections
+        rebalance_days += res.rebalance_days
         state = res.final_state
         if not res.evaluation.get("usable_for_evaluation", True):
             usable = False
@@ -107,22 +108,26 @@ def walk_forward(session: Session, code: str, grid: list[dict], base: BacktestCo
         per_window.append({"window": w.to_dict(), "selected_params": best, "test_run_id": rid,
                            "start_equity": start_eq, "end_equity": end_eq,
                            "carried_positions": len(state.positions) if state else 0,
+                           "rebalance_days": res.rebalance_days,
                            "costs": _costs(res.fills), "results_hash": res.results_hash(),
                            "test_metrics": {k: res.metrics.get(k) for k in
                                             ("total_return", "sharpe", "max_drawdown", "trades", "win_rate")}})
     metrics = compute_metrics(curve, trades, fills, base.initial_cash)
     metrics["dividend_mode"] = base.dividend_mode
     metrics["usable_for_evaluation"] = usable
+    metrics["benchmark_comparable"] = base.benchmark_comparable()
     evaluation = {"usable_for_evaluation": usable, "unusable_reasons": reasons,
                   "capital": "continuous: each window starts from the previous actual end state"}
     summary = BacktestResult(config={**base.to_dict(), "start": str(windows[0].test_start),
                                      "end": str(windows[-1].test_end), "start_equity": base.initial_cash},
                              strategy={"code": code, "grid": grid}, equity_curve=curve, trades=trades,
-                             fills=fills, rejections=rejections, metrics=metrics, benchmark={}, evaluation=evaluation)
+                             fills=fills, rejections=rejections, metrics=metrics, benchmark={}, evaluation=evaluation,
+                             rebalance_days=rebalance_days)
     strat = make(code, **grid[0])
     sid = None if not PERSIST else save_run(
         session, strat, summary, "WALK_FORWARD", started,
         {"role": "walk_forward_summary", "grid": grid, "windows": per_window, "child_run_ids": child_ids,
          "train_days": train_days, "test_days": test_days, "anchored": anchored})
     return {"summary_run_id": sid, "windows": per_window, "oos_metrics": metrics, "evaluation": evaluation,
+            "rebalance_days": rebalance_days,
             "costs_total": _costs(fills), "results_hash": summary.results_hash(), "disclaimer": DISCLAIMER}

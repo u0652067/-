@@ -28,7 +28,7 @@ _TABLES = {
                              "source, available_at)"),
     "data_quality_issues": ("trade_date", "id",
                             "concat_ws('|', id, check_name, severity, security_id, trade_date, classification, "
-                            "blocks_backtest)"),
+                            "blocks_backtest, known_at, effective_at, detection_method)"),
     "market_indices": ("trade_date", "index_code, trade_date",
                        "concat_ws('|', index_code, trade_date, close, available_at)"),
 }

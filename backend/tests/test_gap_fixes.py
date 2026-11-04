@@ -14,7 +14,7 @@ from aqt.data import events, pipeline, quality_review
 from aqt.data.fundamentals import latest_statements_as_of
 from aqt.data.http import Fetcher
 from aqt.data.integrity import run_integrity_check
-from aqt.data.pit import TPE
+from aqt.data.pit import DECISION_TIME, QUALITY_CHECK_TIME, TPE, at_tpe
 from aqt.data.sources import corporate_events as ce
 from aqt.data.sources import mops_history as mh
 from aqt.data.sources import restrictions as rs
@@ -128,7 +128,7 @@ def test_tpex_ex_rights_fixes_prev_close_adjustment_and_anomaly(engine, tpex_div
         assert issue.resolved and not issue.blocks_backtest
         # adjusted series is continuous across the ex-date: no artificial >20% drop
         assert abs(float(p.close) / (float(before.close) * float(before.adj_factor)) - 1) < 0.10
-        assert sid not in blocked_securities(s, d)
+        assert sid not in blocked_securities(s, d, at_tpe(d, DECISION_TIME))
 
 
 def test_capital_reduction_and_par_change_events_adjust_history(engine, fetcher, router, synthetic_market):
@@ -232,8 +232,9 @@ def test_financial_history_publication_time_gates_backtest_access(engine, router
 
 # ------------------------------------------------------------------ G13: anomaly classification
 def _issue(s, sid, d):
+    at = at_tpe(d, QUALITY_CHECK_TIME)
     s.add(DataQualityIssue(check_name="move_exceeds_limit", severity="WARN", dataset="daily_prices",
-                           security_id=sid, trade_date=d, detail={}))
+                           security_id=sid, trade_date=d, detail={}, known_at=at, effective_at=at))
 
 
 def test_unexplained_move_becomes_blocking_error_new_listing_does_not(engine, fetcher, synthetic_market):
@@ -252,10 +253,12 @@ def test_unexplained_move_becomes_blocking_error_new_listing_does_not(engine, fe
         assert un.severity == "ERROR" and un.blocks_backtest and not un.resolved
         nl = s.scalar(select(DataQualityIssue).where(DataQualityIssue.security_id == hon))
         assert nl.severity == "WARN" and not nl.blocks_backtest and nl.resolved
-        assert blocked_securities(s, m.dates[25])[tsmc] == "unexplained_price_anomaly"
-        assert tsmc not in blocked_securities(s, m.dates[19])  # not before the anomaly
-        assert tsmc not in blocked_securities(s, m.dates[20] + timedelta(days=121))
-        assert hon not in blocked_securities(s, m.dates[25])
+        day = lambda d: at_tpe(d, DECISION_TIME)  # noqa: E731
+        assert blocked_securities(s, m.dates[25], day(m.dates[25]))[tsmc] == "unexplained_price_anomaly"
+        assert tsmc not in blocked_securities(s, m.dates[19], day(m.dates[19]))  # not before the anomaly
+        late = m.dates[20] + timedelta(days=121)
+        assert tsmc not in blocked_securities(s, late, day(late))
+        assert hon not in blocked_securities(s, m.dates[25], day(m.dates[25]))
 
 
 def test_integrity_reports_coverage_and_quality_separately(engine, fetcher, synthetic_market, tmp_path):

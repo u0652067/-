@@ -15,7 +15,7 @@ than the market-wide files the pipeline ingests.
 """
 import logging
 import random
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -24,8 +24,11 @@ from sqlalchemy.engine import Engine
 from aqt.data.http import Fetcher
 from aqt.data.parsing import roc_to_date, to_decimal
 from aqt.data.quality import LIMIT_TOLERANCE
+from aqt.data.tradability import QUALITY_BLOCK_DAYS
 from aqt.db import session_scope
-from aqt.models import CorporateAction, DailyPrice, DataQualityIssue, Security
+from aqt.models import (
+    BacktestRun, BacktestRunInvalidation, CorporateAction, DailyPrice, DataQualityIssue, Security,
+)
 from aqt.models.base import utcnow
 
 log = logging.getLogger(__name__)
@@ -108,6 +111,7 @@ def classify_move_issues(engine: Engine, fetcher: Fetcher | None = None, verify:
     """Classify (or re-classify) every move_exceeds_limit issue. With a fetcher, issues that are not
     explained by an event or a listing are checked against the independent per-stock series."""
     counts: dict[str, int] = {}
+    changed_after_block: list[int] = []
     now = utcnow()
     for iid, sid, d, code, market, stype, listed in _rows(engine, only_date):
         with session_scope(engine) as s:
@@ -137,14 +141,57 @@ def classify_move_issues(engine: Engine, fetcher: Fetcher | None = None, verify:
                     except Exception as e:  # verification failure keeps the issue blocked
                         detail["verification_error"] = str(e)[:300]
             row = s.get(DataQualityIssue, iid)
+            was_blocking = row.blocks_backtest
             row.classification, row.reviewed_at = cls, now
             row.blocks_backtest = cls in BLOCKING
             row.resolved = cls not in BLOCKING
+            if cls == "DATA_SOURCE_ERROR" and not was_blocking:
+                # found by a later re-fetch, not by the day's rule: it cannot act on the past
+                row.known_at, row.effective_at = now, now
+                row.detection_method = "POST_HOC_VERIFICATION"
+            if (was_blocking and not row.blocks_backtest) or (
+                    row.blocks_backtest and not was_blocking and row.detection_method != "AUTO_RULE"):
+                changed_after_block.append(iid)  # stored runs saw the old state
             # re-classification after new events may clear an earlier ERROR
-            row.severity = "ERROR" if cls in ("UNEXPLAINED", "DATA_SOURCE_ERROR", "CORPORATE_ACTION_MISMATCH")                 else "WARN"
+            row.severity = "ERROR" if cls in ("UNEXPLAINED", "DATA_SOURCE_ERROR", "CORPORATE_ACTION_MISMATCH") \
+                else "WARN"
             row.detail = {**(row.detail or {}), "review": detail} if detail else row.detail
         counts[cls] = counts.get(cls, 0) + 1
+    for iid in changed_after_block:
+        with session_scope(engine) as s:
+            issue = s.get(DataQualityIssue, iid)
+            flag_affected_runs(s, issue, f"data-quality issue {iid} changed after review: {issue.classification}")
     return counts
+
+
+def flag_affected_runs(session, issue: DataQualityIssue, reason: str) -> list[int]:
+    """Stored runs are never edited or silently recomputed: runs whose period the issue touches are
+    recorded as NEEDS_RERUN."""
+    last = issue.trade_date + timedelta(days=QUALITY_BLOCK_DAYS)
+    ids = list(session.scalars(select(BacktestRun.id).where(BacktestRun.period_end >= issue.trade_date,
+                                                            BacktestRun.period_start <= last)
+                               .order_by(BacktestRun.id)))
+    for rid in ids:
+        session.add(BacktestRunInvalidation(backtest_run_id=rid, data_quality_issue_id=issue.id, reason=reason))
+    return ids
+
+
+def record_post_hoc_issue(engine: Engine, security_id: int, trade_date: date, note: str, check_name: str = "manual_review",
+                          classification: str = "POST_HOC_ANOMALY", discovered_at: datetime | None = None) -> dict:
+    """An anomaly discovered after the fact (manual review, vendor correction).
+
+    It takes effect only from `discovered_at`, so universes and fills of earlier decision times do not
+    change; stored backtests covering it are flagged NEEDS_RERUN instead of being silently rewritten."""
+    at = discovered_at or utcnow()
+    with session_scope(engine) as s:
+        issue = DataQualityIssue(check_name=check_name, severity="ERROR", dataset="daily_prices",
+                                 security_id=security_id, trade_date=trade_date, detail={"note": note},
+                                 classification=classification, blocks_backtest=True, reviewed_at=at, known_at=at,
+                                 effective_at=at, detection_method="POST_HOC_MANUAL")
+        s.add(issue)
+        s.flush()
+        runs = flag_affected_runs(s, issue, f"post-hoc data-quality issue {issue.id}: {note}")
+        return {"issue_id": issue.id, "runs_flagged": runs}
 
 
 def classify_known_checks(engine: Engine) -> int:

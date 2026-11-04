@@ -232,6 +232,103 @@ def test_corporate_action_published_after_the_period_cannot_change_results(engin
         assert h[h.d < DAYS[70]].adj_close.iloc[-1] == pytest.approx(95.0)
 
 
+# ------------------------------------------------------------------ what was known when
+def test_blocked_securities_needs_an_explicit_aware_known_at(engine):
+    from aqt.data.tradability import blocked_securities
+    with session_scope(engine) as s:
+        with pytest.raises(TypeError):
+            blocked_securities(s, DAYS[10])
+        with pytest.raises(ValueError):
+            blocked_securities(s, DAYS[10], datetime(2024, 1, 15, 9, 0))
+
+
+def test_restriction_announced_after_the_open_cannot_block_that_open(engine):
+    """T+1 18:00 disposition: unknown at T+1 09:00 — the fill stands; the old 23:59 cut-off blocked it."""
+    from aqt.data.tradability import blocked_securities
+    ids = _make(engine, {"2626": {}})
+    t1 = DAYS[66]
+    with session_scope(engine) as s:
+        s.add(TradingRestriction(security_id=ids["2626"], restriction_type="DISPOSITION", start_date=t1,
+                                 end_date=DAYS[70], announced_date=t1, source="SYNTHETIC",
+                                 available_at=datetime.combine(t1, time(18), tzinfo=TPE)))
+    res = _run(engine, ids, {65: {"2626": 0.5}})
+    assert [f["date"] for f in res.fills if f["type"] == "BUY"] == [str(t1)] and not res.rejections
+    with session_scope(engine) as s:
+        at_open = datetime.combine(t1, time(9), tzinfo=TPE)
+        evening = datetime.combine(t1, time(18), tzinfo=TPE)
+        assert ids["2626"] not in blocked_securities(s, t1, at_open, include_upcoming=False)
+        assert blocked_securities(s, t1, evening, include_upcoming=False)[ids["2626"]] == "disposition"
+
+
+@pytest.mark.parametrize("kind,reason", [("ALTERED_TRADING", "altered_trading_full_delivery"),
+                                         ("STOP_TRADING", "stop_trading")])
+def test_restriction_known_at_0800_blocks_the_open_fill(engine, kind, reason):
+    ids = _make(engine, {"2727": {}})
+    t1 = DAYS[66]
+    with session_scope(engine) as s:
+        s.add(TradingRestriction(security_id=ids["2727"], restriction_type=kind, start_date=t1, end_date=t1,
+                                 announced_date=t1, source="SYNTHETIC",
+                                 available_at=datetime.combine(t1, time(8), tzinfo=TPE)))
+    res = _run(engine, ids, {65: {"2727": 0.5}})
+    assert not [f for f in res.fills if f["type"] == "BUY"]
+    assert [r["reason"] for r in res.rejections] == [f"restricted:{reason}"]
+
+
+def test_anomaly_found_after_as_of_cannot_change_that_backtest_but_flags_stored_runs(engine):
+    from aqt.data import quality_review as qr
+    from aqt.data.universe import build_universe
+    from aqt.models import DataQualityIssue
+    from aqt.research.fingerprint import data_fingerprint
+    from aqt.research.records import run_validity
+    ids = _make(engine, {"2828": {}})
+    sid = ids["2828"]
+    strat = Fixed(params={"ids": ids}, schedule={65: {"2828": 0.5}})
+    discovered = datetime.combine(DAYS[79] + timedelta(days=30), time(10), tzinfo=TPE)
+    with session_scope(engine) as s:
+        before = run_backtest(s, strat, _cfg())
+        rid = save_run(s, strat, before, "IN_SAMPLE", datetime.now(TPE))
+        fp0 = data_fingerprint(s, DAYS[0], DAYS[-1])
+        assert run_validity(s, rid)["status"] == "VALID"
+    out = qr.record_post_hoc_issue(engine, sid, DAYS[64], "vendor correction found by manual review",
+                                   discovered_at=discovered)
+    assert out["runs_flagged"] == [rid]
+    with session_scope(engine) as s:
+        issue = s.get(DataQualityIssue, out["issue_id"])
+        assert issue.effective_at == discovered == issue.known_at and issue.detection_method == "POST_HOC_MANUAL"
+        assert issue.blocks_backtest and issue.created_at is not None
+        # the historical universe and the replayed backtest did not change...
+        assert sid in build_universe(s, DAYS[65]).eligible
+        assert run_backtest(s, strat, _cfg()).results_hash() == before.results_hash()
+        # ...the run is flagged, the data fingerprint moved, and from the discovery on it is excluded
+        v = run_validity(s, rid)
+        assert v["status"] == "NEEDS_RERUN" and v["flags"][0]["issue_id"] == out["issue_id"]
+        assert data_fingerprint(s, DAYS[0], DAYS[-1])["sha256"] != fp0["sha256"]
+        assert s.get(BacktestRun, rid).results_hash == before.results_hash()  # the record itself is untouched
+        assert sid in {k for k, r in build_universe(s, DAYS[79], known_at=discovered).excluded.items()
+                       if r == "unexplained_price_anomaly"}
+    with pytest.raises(DBAPIError):
+        with engine.begin() as c:
+            c.execute(text("UPDATE backtest_run_invalidations SET status='CLEARED'"))
+
+
+def test_rule_issue_is_effective_from_its_check_time_only(engine):
+    from aqt.data.quality import Issue, save_issues
+    from aqt.data.tradability import blocked_securities
+    from aqt.models import DataQualityIssue
+    ids = _make(engine, {"2929": {}})
+    d = DAYS[64]
+    with session_scope(engine) as s:
+        save_issues(s, [Issue("move_exceeds_limit", "WARN", "daily_prices", ids["2929"], d, {})])
+    with session_scope(engine) as s:
+        issue = s.scalar(select(DataQualityIssue))
+        assert issue.detection_method == "AUTO_RULE"
+        issue.blocks_backtest = True
+    with session_scope(engine) as s:
+        assert issue.effective_at == datetime.combine(d, time(17, 45), tzinfo=TPE)
+        assert ids["2929"] not in blocked_securities(s, d, datetime.combine(d, time(9), tzinfo=TPE))
+        assert ids["2929"] in blocked_securities(s, d, datetime.combine(d, time(18), tzinfo=TPE))
+
+
 # ------------------------------------------------------------------ point in time
 def test_dataview_never_sees_future_or_unpublished_rows(engine):
     ids = _make(engine, {"1212": {}})
@@ -378,6 +475,69 @@ def test_dividend_mode_and_benchmark_are_recorded_and_never_mixed(engine):
 
 
 # ------------------------------------------------------------------ splits / walk-forward / metrics
+@pytest.mark.parametrize("code,params,cut", [
+    ("ma_trend_momentum", {"top_n": 3, "lookback": 10, "rebalance": "week"}, "midweek"),
+    ("ew_liquid_baseline", {"top_n": 3, "rebalance": "month"}, "midmonth")])
+def test_window_boundary_does_not_move_the_rebalance_calendar(engine, fetcher, synthetic_market, code, params, cut):
+    """Same strategy over the same period, split or not: same decision days, fills and equity."""
+    from dataclasses import replace
+
+    from aqt.research.strategies import make
+    m = synthetic_market
+    pipeline.backfill(engine, m.dates[0], m.dates[-1], fetcher)
+    tail = m.dates[61:]
+    if cut == "midweek":  # a Wednesday: the first day of the second window is mid-week
+        c = next(i for i, d in enumerate(tail) if d.weekday() == 2 and i > 3)
+    else:  # the 15th or so: the first day of the second window is mid-month
+        c = next(i for i, d in enumerate(tail) if 12 <= d.day <= 18 and i > 3)
+    base = BacktestConfig(tail[0], tail[-1], initial_cash=5_000_000)
+    with session_scope(engine) as s:
+        whole = run_backtest(s, make(code, **params), base)
+        first = run_backtest(s, make(code, **params), replace(base, end=tail[c], terminal="CARRY"))
+        assert first.final_state.last_trading_day == tail[c]
+        second = run_backtest(s, make(code, **params), replace(base, start=tail[c + 1]), first.final_state)
+    assert tail[c + 1].isoformat() not in second.rebalance_days or tail[c + 1].isoformat() in whole.rebalance_days
+    assert first.rebalance_days + second.rebalance_days == whole.rebalance_days and whole.rebalance_days
+    key = lambda fs: [f for f in fs if f["type"] != "CORPORATE_ACTION"]  # noqa: E731
+    assert key(first.fills) + key(second.fills) == key(whole.fills)
+    assert (first.equity_curve + second.equity_curve) == whole.equity_curve
+
+
+def test_benchmark_is_compared_only_inside_its_market_scope(engine):
+    from aqt.models import MarketIndex
+    ids = _make(engine, {"3131": {}})
+    with session_scope(engine) as s:
+        s.execute(update(Security).where(Security.id == ids["3131"]).values(market="TWSE"))
+        tpex = Security(code="3232", market="TPEX", name="SYN", security_type="STOCK", status="ACTIVE")
+        s.add(tpex)
+        for i, d in enumerate(DAYS):
+            s.add(MarketIndex(index_code="TWSE:發行量加權股價報酬指數", trade_date=d, name="SYN",
+                              close=D(str(20000 + i)), source="SYNTHETIC",
+                              available_at=datetime.combine(d, time(14, 30), tzinfo=TPE)))
+    strat = Fixed(params={"ids": ids}, schedule={65: {"3131": 0.5}})
+    with session_scope(engine) as s:
+        both = run_backtest(s, strat, _cfg())  # default universe: listed + OTC, index: listed only
+        assert both.metrics["benchmark_comparable"] is False and both.benchmark["comparable"] is False
+        for k in ("excess_return_vs_benchmark", "benchmark_total_return", "benchmark_max_drawdown"):
+            assert k not in both.metrics
+        assert both.benchmark["curve"] == [] and "scope" in both.benchmark["not_comparable_reason"]
+        rid = save_run(s, strat, both, "IN_SAMPLE", datetime.now(TPE))
+        assert s.get(BacktestRun, rid).benchmark_comparable is False
+        twse = run_backtest(s, strat, _cfg(markets=("TWSE",)))
+        assert twse.metrics["benchmark_comparable"] is True and "excess_return_vs_benchmark" in twse.metrics
+        assert twse.config["markets"] == ["TWSE"]
+
+
+def test_market_scope_filters_the_universe(engine):
+    ids = _make(engine, {"3333": {}})
+    with session_scope(engine) as s:
+        s.execute(update(Security).where(Security.id == ids["3333"]).values(market="TPEX"))
+    with session_scope(engine) as s:
+        assert ids["3333"] in DataView(s, DAYS[65]).universe().eligible
+        u = DataView(s, DAYS[65], markets=("TWSE",)).universe()
+        assert ids["3333"] not in u.eligible and u.excluded[ids["3333"]] == "outside_market_scope"
+
+
 def test_chronological_split_and_walk_forward_windows_never_look_back():
     sp = chronological_split(DAYS, 0.6, 0.2)
     assert sp["train"][1] < sp["validation"][0] <= sp["validation"][1] < sp["test"][0]
@@ -408,6 +568,7 @@ def test_walk_forward_and_oos_end_to_end(engine, fetcher, synthetic_market):
         assert wf["costs_total"][k] == pytest.approx(sum(w["costs"][k] for w in ws), abs=1e-6)
     assert wf["oos_metrics"]["costs"]["commission"] == pytest.approx(wf["costs_total"]["commission"])
     assert sum(1 for w in ws[:-1] if w["costs"]["end_mark_selling_costs"]) == 0  # only the last window marks
+    assert wf["rebalance_days"] == [d for w in ws for d in w["rebalance_days"]] and wf["rebalance_days"]
     assert oos["selected_params"] in grid and "test" in oos and "validation" in oos
     with session_scope(engine) as s:
         summary = s.get(BacktestRun, wf["summary_run_id"])

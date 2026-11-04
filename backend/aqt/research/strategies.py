@@ -27,6 +27,7 @@ class Strategy:
         return hashlib.sha256(blob.encode()).hexdigest()
 
     def is_decision_day(self, d: date, prev: date | None) -> bool:
+        """`prev` is the real previous trading day (None only at the very start of a portfolio)."""
         return True
 
     def target_weights(self, view: DataView, holdings: dict[int, float]) -> dict[int, float] | None:

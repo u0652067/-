@@ -76,6 +76,7 @@ class BacktestRun(Base, TimestampMixin):
     usable_for_evaluation: Mapped[bool | None]
     evaluation: Mapped[dict] = mapped_column(JSONB, default=dict)
     data_manifest: Mapped[dict] = mapped_column(JSONB, default=dict)
+    benchmark_comparable: Mapped[bool | None]
 
 
 class BacktestTrade(Base):
@@ -95,6 +96,17 @@ class BacktestTrade(Base):
     exit_costs: Mapped[float | None]
     gross_pnl: Mapped[float | None]
     __table_args__ = (Index("ix_backtest_trades_run", "backtest_run_id"),)
+
+
+class BacktestRunInvalidation(Base, TimestampMixin):
+    """A stored run is never edited: when data used by it is later found wrong, it is flagged here."""
+    __tablename__ = "backtest_run_invalidations"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    backtest_run_id: Mapped[int] = mapped_column(ForeignKey("backtest_runs.id"), nullable=False)
+    data_quality_issue_id: Mapped[int | None] = mapped_column(ForeignKey("data_quality_issues.id"))
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="NEEDS_RERUN")
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    __table_args__ = (Index("ix_backtest_invalidations_run", "backtest_run_id"),)
 
 
 class MarketRegime(Base):

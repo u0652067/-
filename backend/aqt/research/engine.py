@@ -6,9 +6,10 @@ Day loop for every observed trading day d in [start, end]:
      explicit dividend mode (only TOTAL_RETURN_REINVEST: value-preserving share adjustment, i.e.
      frictionless reinvestment of distributions — reported as such, never compared with a price index);
   2. pending orders (decided after the close of an earlier decision day T) execute at d's open.
-     Only information available by T's decision time sizes or admits an order: the participation cap is
-     a share of the *historical* average daily volume up to T; the fill day's own volume, high, low and
-     close are never read. Sells first, then buys within available cash;
+     Only information available by T's decision time sizes an order: the participation cap is a share of
+     the *historical* average daily volume up to T; the fill day's own volume, high, low and close are
+     never read. Restrictions and quality exclusions are those known at d 09:00, never later that day.
+     Sells first, then buys within available cash;
   3. the portfolio is marked to market at d's close. A holding without a tradable bar is NOT exited:
      it stays frozen at its last close and is recorded as untradable; a run that ends with (or spends
      a long stretch with) such holdings is marked unusable for evaluation. No exit is ever faked from
@@ -32,25 +33,25 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from aqt.data.pit import TPE
+from aqt.data.pit import MARKET_OPEN_TIME, TPE, at_tpe
 from aqt.data.tradability import blocked_securities
 from aqt.models import CorporateAction, DailyPrice, MarketIndex, Security
 from aqt.research import DISCLAIMER, ENGINE_VERSION
 from aqt.research.costs import CostModel, FillResult
-from aqt.research.dataview import DEFAULT_DECISION_TIME, DataView, FundamentalsNotAllowed
+from aqt.research.dataview import ALL_MARKETS, DEFAULT_DECISION_TIME, DataView, FundamentalsNotAllowed
 from aqt.research.metrics import compute_metrics
 from aqt.research.strategies import Strategy
 
 log = logging.getLogger(__name__)
 NO_TRADE_BLOCKS = {"stop_trading", "trading_halt"}  # cannot trade at all (sells are retried)
 SELL_RETRY_DAYS = 20
-OPEN_TIME = time(9, 0)
 ACCEPTED_QUALITY = {"CLEAN", "REVIEWED_WITH_EXCLUSIONS"}
 UNTRADABLE_UNUSABLE_DAYS = 20  # a holding untradable this long makes the run unusable for evaluation
 
 DIVIDEND_MODES = {"TOTAL_RETURN_REINVEST"}
-# total-return benchmark matching the dividend mode; the price index is shown only as a labelled reference
-BENCHMARKS = {"TOTAL_RETURN_REINVEST": ("TWSE:發行量加權股價報酬指數", "total_return")}
+# total-return benchmark matching the dividend mode, and the markets it covers. It is compared with a
+# strategy only when the strategy trades inside that scope; the price index is never comparable.
+BENCHMARKS = {"TOTAL_RETURN_REINVEST": ("TWSE:發行量加權股價報酬指數", "total_return", ("TWSE",))}
 PRICE_INDEX_REFERENCE = "TAIEX"
 
 
@@ -64,6 +65,7 @@ class BacktestConfig:
     allow_fundamentals: bool = False
     dividend_mode: str = "TOTAL_RETURN_REINVEST"
     volume_lookback_days: int = 20  # participation cap basis: average daily volume up to the decision day
+    markets: tuple[str, ...] = ALL_MARKETS  # universe scope; the benchmark comparison depends on it
     terminal: str = "MARK"  # MARK: open positions are valued at the last close net of selling costs
                             # (labelled, not an execution); CARRY: state handed to the next walk-forward window
 
@@ -74,12 +76,17 @@ class BacktestConfig:
         if self.terminal not in ("MARK", "CARRY"):
             raise ValueError("terminal must be MARK or CARRY")
 
+    def benchmark_comparable(self) -> bool:
+        return set(self.markets) <= set(BENCHMARKS[self.dividend_mode][2])
+
     def to_dict(self) -> dict:
-        bench, kind = BENCHMARKS[self.dividend_mode]
+        bench, kind, scope = BENCHMARKS[self.dividend_mode]
         return {"start": str(self.start), "end": str(self.end), "initial_cash": self.initial_cash,
                 "cost_model": self.cost_model.to_dict(), "decision_time": str(self.decision_time),
                 "allow_fundamentals": self.allow_fundamentals, "dividend_mode": self.dividend_mode,
-                "benchmark_index": bench, "benchmark_kind": kind, "volume_lookback_days": self.volume_lookback_days,
+                "benchmark_index": bench, "benchmark_kind": kind, "benchmark_scope": list(scope),
+                "markets": list(self.markets), "benchmark_comparable": self.benchmark_comparable(),
+                "volume_lookback_days": self.volume_lookback_days,
                 "participation_basis": "average daily volume of the volume_lookback_days up to the decision day",
                 "fill_rule": "next trading day open", "terminal": self.terminal, "engine_version": ENGINE_VERSION}
 
@@ -112,13 +119,15 @@ class Position:
 
 @dataclass
 class PortfolioState:
-    """Everything a later walk-forward window inherits: actual cash, holdings, pending exits, marks and
-    which corporate actions were already applied."""
+    """Everything a later walk-forward window inherits: actual cash, holdings, pending orders, marks,
+    applied corporate actions, and the last real trading day (the rebalance calendar continues from it:
+    a window boundary is not an event)."""
     cash: Decimal
     positions: dict = field(default_factory=dict)
     pending: list = field(default_factory=list)
     last_close: dict = field(default_factory=dict)
     applied_actions: set = field(default_factory=set)
+    last_trading_day: date | None = None
 
     def equity(self) -> Decimal:
         return self.cash + sum((self.last_close.get(s, Decimal(0)) * Decimal(str(p.shares))
@@ -136,12 +145,14 @@ class BacktestResult:
     metrics: dict
     benchmark: dict
     evaluation: dict = field(default_factory=dict)  # usability verdict + untradable holdings
+    rebalance_days: list = field(default_factory=list)  # days the strategy actually decided
     final_state: PortfolioState | None = None
     disclaimer: str = DISCLAIMER
 
     def results_hash(self) -> str:
         blob = json.dumps({"equity": self.equity_curve, "trades": self.trades, "fills": self.fills,
-                           "rejections": self.rejections, "evaluation": self.evaluation}, sort_keys=True, default=str)
+                           "rejections": self.rejections, "evaluation": self.evaluation,
+                           "rebalance_days": self.rebalance_days}, sort_keys=True, default=str)
         return hashlib.sha256(blob.encode()).hexdigest()
 
 
@@ -176,6 +187,8 @@ class Backtester:
         st = deepcopy(initial_state) if initial_state else PortfolioState(Decimal(str(config.initial_cash)))
         self.cash, self.pos, self.pending = st.cash, st.positions, st.pending
         self.last_close, self.applied = st.last_close, st.applied_actions
+        self.last_trading_day = st.last_trading_day
+        self.rebalance_days: list[str] = []
         self.start_equity = float(st.equity())
         self.equity_curve, self.trades, self.fills, self.rejections = [], [], [], []
         self.untradable_log: list[dict] = []
@@ -215,7 +228,7 @@ class Backtester:
         held = [sid for sid, p in self.pos.items() if p.shares > 0]
         if not held:
             return
-        known_by = datetime.combine(d, OPEN_TIME, tzinfo=TPE)
+        known_by = at_tpe(d, MARKET_OPEN_TIME)
         rows = self.s.execute(select(CorporateAction.id, CorporateAction.security_id, CorporateAction.ex_date,
                                      CorporateAction.action_type, CorporateAction.prev_close,
                                      CorporateAction.ref_price)
@@ -278,7 +291,8 @@ class Backtester:
             return
         orders = sorted(self.pending, key=lambda o: (o.side != "SELL", o.sid))  # sells first
         bars = self._bars({o.sid for o in orders}, d)
-        blocked = blocked_securities(self.s, d)
+        # only what was known before the open of the fill day, and only what is in force that day
+        blocked = blocked_securities(self.s, d, at_tpe(d, MARKET_OPEN_TIME), include_upcoming=False)
         keep: list[Order] = []
         for o in orders:
             if o.side == "BUY":
@@ -403,7 +417,7 @@ class Backtester:
                         "resolved": False} for sid, p in sorted(self.pos.items()) if p.untradable_since]
         long_ones = [x for x in self.untradable_log + open_issues if x["days"] >= UNTRADABLE_UNUSABLE_DAYS]
         reasons = []
-        if open_issues:
+        if open_issues and self.cfg.terminal == "MARK":  # a CARRY window hands them to the next window
             reasons.append(f"{len(open_issues)} holding(s) untradable at the end (possible delisting; G9 "
                            "official delisting events not connected) — valued at a stale last close")
         if long_ones:
@@ -415,17 +429,21 @@ class Backtester:
     # ------------------------------------------------------------------ run
     def run(self) -> BacktestResult:
         days = self._days()
-        last_decision = None
+        prev = self.last_trading_day  # the real previous trading day, also across window boundaries
         for d in days:
             self._apply_corporate_actions(d)
             self._execute(d)
             self._mark(d)
-            if self.strategy.is_decision_day(d, last_decision) and d != days[-1]:
-                view = DataView(self.s, d, self.cfg.decision_time, self.cfg.allow_fundamentals)
+            # the last day of the final window has no next open; a CARRY window fills in the next one
+            can_fill_later = d != days[-1] or self.cfg.terminal == "CARRY"
+            if self.strategy.is_decision_day(d, prev) and can_fill_later:
+                view = DataView(self.s, d, self.cfg.decision_time, self.cfg.allow_fundamentals, self.cfg.markets)
                 targets = self.strategy.target_weights(view, {k: v.shares for k, v in self.pos.items()})
                 if targets is not None:
                     self._rebalance(d, targets, view)
-                last_decision = d
+                    self.rebalance_days.append(str(d))
+            prev = d
+        self.last_trading_day = prev
         end = days[-1] if days else self.cfg.end
         evaluation = self._evaluation(end)
         if self.cfg.terminal == "MARK":
@@ -447,27 +465,35 @@ class Backtester:
         metrics = compute_metrics(self.equity_curve, self.trades, self.fills, self.start_equity, bench)
         metrics["dividend_mode"] = self.cfg.dividend_mode
         metrics["usable_for_evaluation"] = evaluation["usable_for_evaluation"]
-        state = PortfolioState(self.cash, self.pos, self.pending, self.last_close, self.applied)
+        metrics["benchmark_comparable"] = self.cfg.benchmark_comparable()
+        state = PortfolioState(self.cash, self.pos, self.pending, self.last_close, self.applied, self.last_trading_day)
         return BacktestResult(config={**self.cfg.to_dict(), "start_equity": self.start_equity,
                                       "data_readiness_at_run": self.readiness},
                               strategy={"code": self.strategy.code, "version": self.strategy.version,
                                         "params": self.strategy.params, "params_hash": self.strategy.params_hash()},
                               equity_curve=self.equity_curve, trades=self.trades, fills=self.fills,
                               rejections=self.rejections, metrics=metrics, benchmark=bench, evaluation=evaluation,
-                              final_state=deepcopy(state))
+                              rebalance_days=self.rebalance_days, final_state=deepcopy(state))
 
     def _benchmark(self, days: list[date]) -> dict:
         if not days:
             return {}
-        code, kind = BENCHMARKS[self.cfg.dividend_mode]
+        code, kind, scope = BENCHMARKS[self.cfg.dividend_mode]
+        comparable = self.cfg.benchmark_comparable()
 
         def curve(c):
             rows = self.s.execute(select(MarketIndex.trade_date, MarketIndex.close)
                                   .where(MarketIndex.index_code == c, MarketIndex.trade_date.between(days[0], days[-1]))
                                   .order_by(MarketIndex.trade_date)).all()
             return [[str(d), float(v)] for d, v in rows if v is not None]
-        price = curve(PRICE_INDEX_REFERENCE)
-        return {"index": code, "kind": kind, "comparable_with": self.cfg.dividend_mode, "curve": curve(code),
+        price, index_curve = curve(PRICE_INDEX_REFERENCE), curve(code)
+        # compute_metrics only sees `curve`: an index of another market scope yields no relative figures
+        return {"index": code, "kind": kind, "scope": list(scope), "comparable": comparable,
+                "not_comparable_reason": None if comparable else
+                f"strategy markets {list(self.cfg.markets)} exceed the benchmark scope {list(scope)}",
+                "dividend_mode": self.cfg.dividend_mode, "curve": index_curve if comparable else [],
+                "reference_only_total_return": (None if comparable or len(index_curve) < 2 else
+                                                index_curve[-1][1] / index_curve[0][1] - 1),
                 "price_index_reference": {"index": PRICE_INDEX_REFERENCE, "kind": "price (dividends excluded)",
                                           "comparable": False,
                                           "total_return": price[-1][1] / price[0][1] - 1 if len(price) > 1 else None}}
