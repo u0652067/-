@@ -25,7 +25,13 @@ def upgrade() -> None:
                 sa.Column("started_at", sa.DateTime(timezone=True)),
                 sa.Column("finished_at", sa.DateTime(timezone=True)),
                 sa.Column("parent_run_id", sa.BigInteger, sa.ForeignKey("backtest_runs.id")),
-                sa.Column("disclaimer", sa.Text)):
+                sa.Column("disclaimer", sa.Text),
+                sa.Column("dividend_mode", sa.String(32)),
+                sa.Column("benchmark_index", sa.String(64)),
+                sa.Column("benchmark_kind", sa.String(24)),
+                sa.Column("usable_for_evaluation", sa.Boolean),
+                sa.Column("evaluation", JSONB, nullable=False, server_default="{}"),
+                sa.Column("data_manifest", JSONB, nullable=False, server_default="{}")):
         op.add_column("backtest_runs", col)
     op.add_column("backtest_trades", sa.Column("entry_costs", sa.Float))
     op.add_column("backtest_trades", sa.Column("exit_costs", sa.Float))
@@ -44,6 +50,7 @@ def downgrade() -> None:
         op.execute(f"DROP TRIGGER IF EXISTS {t}_no_truncate ON {t}")
     for c in ("gross_pnl", "exit_costs", "entry_costs"):
         op.drop_column("backtest_trades", c)
-    for c in ("disclaimer", "parent_run_id", "finished_at", "started_at", "engine_version", "results_hash",
+    for c in ("data_manifest", "evaluation", "usable_for_evaluation", "benchmark_kind", "benchmark_index",
+              "dividend_mode", "disclaimer", "parent_run_id", "finished_at", "started_at", "engine_version", "results_hash",
               "data_version_hash", "data_version", "params_hash", "config"):
         op.drop_column("backtest_runs", c)

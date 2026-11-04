@@ -18,6 +18,11 @@ DATASET_PUBLISH_TIME = {
 }
 
 
+DECISION_TIME = time(18, 0)  # after-close decisions: quotes, institutional and valuations are public
+MARKET_OPEN_TIME = time(9, 0)  # next-open fills may only use what was known at the open
+QUALITY_CHECK_TIME = time(17, 45)  # the daily rule-based checks run on the day's published data
+
+
 def at_tpe(d: date, t: time) -> datetime:
     return datetime.combine(d, t, tzinfo=TPE)
 

@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## [0.3.2] — 2026-11-04 — PHASE 2 第二輪審查修正（同分支 `claude/phase2-fixes`，PR #5 待審）
+- #1 `blocked_securities()` 的 `known_at` 改為必填；決策用 T 18:00，開盤成交用 T+1 09:00，且只看當日生效的限制。修正前有 30 筆委託被當晚才公告的處置擋下（時間洩漏）。
+- #2 migration 0005：`data_quality_issues.known_at/effective_at/detection_method`；`record_post_hoc_issue()`；只能新增的 `backtest_run_invalidations`；`run_validity()`；三欄納入資料指紋。
+- #3 `PortfolioState.last_trading_day`；排程跨視窗延續；CARRY 視窗最後一天可決策；報告列出實際再平衡日。
+- #4 `benchmark_comparable` 與 `markets`：含上櫃不與上市基準比較；撤回先前報告的相對基準解讀。
+- 測試 138 passed；真實資料在正式庫的暫存複本驗證（正式庫維持 0003），17 筆回測紀錄寫入暫存庫。
+
+## [0.3.1] — 2026-11-04 — PHASE 2 審查修正（分支 `claude/phase2-fixes`，待審；PR #4 不合併）
+- PR #3 已合併：main `c799b88` → `7a89d6d`（PHASE 1 整合）。
+- #1 成交量上限與滑價只用決策日以前的歷史均量／均值；成交日只讀開盤價與漲跌停。
+- #2 `check_readiness()` fail closed：缺狀態、非明確 true、覆蓋不完整、品質未審都拒絕。
+- #3 移除以事後資訊出場；無法交易持股凍結，並以 `usable_for_evaluation=false` 標示不可用。
+- #4 `dividend_mode=TOTAL_RETURN_REINVEST`（唯一模式）；基準改為發行量加權股價報酬指數，價格指數只當參考、不可比較；寫入 `backtest_runs`。
+- #5 Walk-forward 改為連續資金與持倉延續（`PortfolioState`、`terminal=CARRY/MARK`）。
+- #6 `research/fingerprint.py`：按月逐列 sha256 manifest → `backtest_runs.data_manifest`／`data_version_hash`。
+- #7 公司事件只在開盤前已公開時才套用；DataView 自行重建時點正確的還原價與指標。
+- migration 0004（尚未發布、尚未套用）新增 dividend_mode、benchmark_index/kind、usable_for_evaluation、evaluation、data_manifest。
+- 測試 128 passed；真實資料乾跑、樣本外、Walk-forward 已重跑（`evidence/2026-11-03_phase2/phase2_fix_dry_run_20261104T014143.json`）。
+
 ## [0.3.0] — 2026-11-03 — PHASE 2 技術面回測骨架（分支 `claude/phase2-backtest`，待驗收）
 - 新增 `aqt/research/`：事件驅動日頻回測引擎、point-in-time DataView、台股成本模型、策略介面與範例（cash / 等權流動性基準 / 均線趨勢動能範例）、績效指標、時間切分、樣本外、Walk-forward、不可竄改紀錄。
 - migration 0004：`backtest_runs`／`backtest_trades` 只能新增；新增 config、params_hash、data_version(_hash)、results_hash、engine_version、執行時間、免責聲明欄位。

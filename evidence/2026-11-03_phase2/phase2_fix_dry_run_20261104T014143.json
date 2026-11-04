@@ -1,0 +1,547 @@
+{
+ "disclaimer": "研究用途的歷史模擬結果。回測績效不代表未來表現，不構成任何策略有效、可獲利或可交易的宣稱，亦非投資建議。Research-only historical simulation; not evidence that any strategy is effective, profitable or tradable.",
+ "runs": {
+  "cash_baseline": {
+   "params": {},
+   "seconds": 0.1,
+   "deterministic": true,
+   "results_hash": "caf9a6015588bfe1fc1468891055b5646a382b85d7c7d16d1d4f18eacc433c32",
+   "metrics": {
+    "days": 242,
+    "start": "2024-01-02",
+    "end": "2024-12-31",
+    "final_equity": 10000000.0,
+    "total_return": 0.0,
+    "cagr": 0.0,
+    "annual_volatility": 0.0,
+    "sharpe": null,
+    "max_drawdown": 0.0,
+    "max_drawdown_period": [
+     "initial",
+     null
+    ],
+    "trades": 0,
+    "win_rate": null,
+    "avg_win": null,
+    "avg_loss": null,
+    "expectancy_per_trade": null,
+    "profit_factor": null,
+    "gross_pnl_closed_trades": 0,
+    "net_pnl_closed_trades": 0,
+    "costs": {
+     "commission": 0,
+     "tax": 0,
+     "slippage_vs_open": 0,
+     "total_explicit": 0,
+     "total_incl_slippage": 0,
+     "end_mark_selling_costs": 0
+    },
+    "turnover": 0.0,
+    "avg_exposure": 0.0,
+    "net_of_costs": true,
+    "benchmark_total_return": 0.3230150769964111,
+    "excess_return_vs_benchmark": -0.3230150769964111,
+    "benchmark_max_drawdown": -0.1830999622168491,
+    "benchmark": {
+     "index": "TWSE:發行量加權股價報酬指數",
+     "kind": "total_return"
+    },
+    "dividend_mode": "TOTAL_RETURN_REINVEST",
+    "usable_for_evaluation": true
+   },
+   "rejections_by_reason": {},
+   "fills": 0,
+   "evaluation": {
+    "usable_for_evaluation": true,
+    "unusable_reasons": [],
+    "untradable_holdings": [],
+    "terminal": "MARK"
+   },
+   "benchmark": {
+    "index": "TWSE:發行量加權股價報酬指數",
+    "kind": "total_return",
+    "comparable_with": "TOTAL_RETURN_REINVEST",
+    "price_index_reference": {
+     "index": "TAIEX",
+     "kind": "price (dividends excluded)",
+     "comparable": false,
+     "total_return": 0.29021001738569363
+    }
+   },
+   "corporate_action_adjustments": 0
+  },
+  "ew_liquid_baseline": {
+   "params": {
+    "top_n": 30
+   },
+   "seconds": 41.6,
+   "deterministic": true,
+   "results_hash": "00f0b95cb4609f745e6c6449765cbff09de9477b820d214a364b8c9c9029665d",
+   "metrics": {
+    "days": 242,
+    "start": "2024-01-02",
+    "end": "2024-12-31",
+    "final_equity": 10038101.33,
+    "total_return": 0.003810133116404435,
+    "cagr": 0.0038232423451092235,
+    "annual_volatility": 0.17441927834813623,
+    "sharpe": 0.11026868141055701,
+    "max_drawdown": -0.15958704461724005,
+    "max_drawdown_period": [
+     "2024-06-20",
+     "2024-08-06"
+    ],
+    "trades": 105,
+    "win_rate": 0.3523809523809524,
+    "avg_win": 57761.12971992027,
+    "avg_loss": -30861.59779072598,
+    "expectancy_per_trade": 367.36333207317,
+    "profit_factor": 1.0183805196277613,
+    "gross_pnl_closed_trades": 218402.14986768283,
+    "net_pnl_closed_trades": 38573.14986768285,
+    "costs": {
+     "commission": 77718.0,
+     "tax": 71985.0,
+     "slippage_vs_open": 137255.55,
+     "total_explicit": 149703.0,
+     "total_incl_slippage": 286958.55,
+     "end_mark_selling_costs": 30126.0
+    },
+    "turnover": 5.478870436751671,
+    "avg_exposure": 0.5968913685364577,
+    "net_of_costs": true,
+    "benchmark_total_return": 0.3230150769964111,
+    "excess_return_vs_benchmark": -0.31920494388000664,
+    "benchmark_max_drawdown": -0.1830999622168491,
+    "benchmark": {
+     "index": "TWSE:發行量加權股價報酬指數",
+     "kind": "total_return"
+    },
+    "dividend_mode": "TOTAL_RETURN_REINVEST",
+    "usable_for_evaluation": true
+   },
+   "rejections_by_reason": {
+    "restricted:disposition": 1
+   },
+   "fills": 200,
+   "evaluation": {
+    "usable_for_evaluation": true,
+    "unusable_reasons": [],
+    "untradable_holdings": [],
+    "terminal": "MARK"
+   },
+   "benchmark": {
+    "index": "TWSE:發行量加權股價報酬指數",
+    "kind": "total_return",
+    "comparable_with": "TOTAL_RETURN_REINVEST",
+    "price_index_reference": {
+     "index": "TAIEX",
+     "kind": "price (dividends excluded)",
+     "comparable": false,
+     "total_return": 0.29021001738569363
+    }
+   },
+   "corporate_action_adjustments": 21
+  },
+  "ma_trend_momentum": {
+   "params": {
+    "top_n": 20,
+    "lookback": 20
+   },
+   "seconds": 304.8,
+   "deterministic": true,
+   "results_hash": "70326d31de51f1d010845e1b0eb39ddb168a744feac5800ebfa4c82c70a6d3c9",
+   "metrics": {
+    "days": 242,
+    "start": "2024-01-02",
+    "end": "2024-12-31",
+    "final_equity": 9312528.75,
+    "total_return": -0.06874712456814847,
+    "cagr": -0.06897487125944157,
+    "annual_volatility": 0.33276534737763036,
+    "sharpe": -0.05737360046850709,
+    "max_drawdown": -0.284699652204356,
+    "max_drawdown_period": [
+     "2024-08-29",
+     "2024-12-17"
+    ],
+    "trades": 592,
+    "win_rate": 0.375,
+    "avg_win": 70911.35128015639,
+    "avg_loss": -44378.61170029401,
+    "expectancy_per_trade": -1144.8755826251058,
+    "profit_factor": 0.9587233385178645,
+    "gross_pnl_closed_trades": 1093890.6550859374,
+    "net_pnl_closed_trades": -677766.3449140626,
+    "costs": {
+     "commission": 851184.0,
+     "tax": 886526.0,
+     "slippage_vs_open": 1679614.68,
+     "total_explicit": 1737710.0,
+     "total_incl_slippage": 3417324.6799999997,
+     "end_mark_selling_costs": 33947.0
+    },
+    "turnover": 59.98036017081451,
+    "avg_exposure": 0.869753921802866,
+    "net_of_costs": true,
+    "benchmark_total_return": 0.3230150769964111,
+    "excess_return_vs_benchmark": -0.39176220156455954,
+    "benchmark_max_drawdown": -0.1830999622168491,
+    "benchmark": {
+     "index": "TWSE:發行量加權股價報酬指數",
+     "kind": "total_return"
+    },
+    "dividend_mode": "TOTAL_RETURN_REINVEST",
+    "usable_for_evaluation": true
+   },
+   "rejections_by_reason": {
+    "restricted:disposition": 30,
+    "limit_up_at_open": 16,
+    "limit_down_at_open": 3
+   },
+   "fills": 1289,
+   "evaluation": {
+    "usable_for_evaluation": true,
+    "unusable_reasons": [],
+    "untradable_holdings": [
+     {
+      "sid": 1409,
+      "from": "2024-12-26",
+      "to": "2024-12-27",
+      "days": 1,
+      "resolved": true
+     }
+    ],
+    "terminal": "MARK"
+   },
+   "benchmark": {
+    "index": "TWSE:發行量加權股價報酬指數",
+    "kind": "total_return",
+    "comparable_with": "TOTAL_RETURN_REINVEST",
+    "price_index_reference": {
+     "index": "TAIEX",
+     "kind": "price (dividends excluded)",
+     "comparable": false,
+     "total_return": 0.29021001738569363
+    }
+   },
+   "corporate_action_adjustments": 16
+  }
+ },
+ "walk_forward": {
+  "seconds": 749.4,
+  "windows": [
+   {
+    "window": {
+     "train_start": "2023-07-03",
+     "train_end": "2023-12-21",
+     "test_start": "2023-12-22",
+     "test_end": "2024-03-27"
+    },
+    "selected_params": {
+     "top_n": 20,
+     "lookback": 60
+    },
+    "test_run_id": null,
+    "start_equity": 10000000.0,
+    "end_equity": 11033461.334135028,
+    "carried_positions": 18,
+    "costs": {
+     "commission": 157853.0,
+     "tax": 154641.0,
+     "slippage_vs_open": 299200.0,
+     "end_mark_selling_costs": 0.0
+    },
+    "results_hash": "6daa41a1965d38cf42f215738ecec5d2d29c8d6848c8d4485f3c3350c368186b",
+    "test_metrics": {
+     "total_return": 0.10334613341350285,
+     "sharpe": 1.4788494968513957,
+     "max_drawdown": -0.0955743314990043,
+     "trades": 107,
+     "win_rate": 0.3925233644859813
+    }
+   },
+   {
+    "window": {
+     "train_start": "2023-09-26",
+     "train_end": "2024-03-27",
+     "test_start": "2024-03-28",
+     "test_end": "2024-06-25"
+    },
+    "selected_params": {
+     "top_n": 20,
+     "lookback": 60
+    },
+    "test_run_id": null,
+    "start_equity": 11033461.334135028,
+    "end_equity": 9981167.487865552,
+    "carried_positions": 20,
+    "costs": {
+     "commission": 164976.0,
+     "tax": 172672.0,
+     "slippage_vs_open": 295428.77,
+     "end_mark_selling_costs": 0.0
+    },
+    "results_hash": "80487f519cfdd337ef10a0879b8a725314fef44c9797fc642279c1056178647e",
+    "test_metrics": {
+     "total_return": -0.09537295816806979,
+     "sharpe": -1.3356606769631882,
+     "max_drawdown": -0.16225030783439398,
+     "trades": 116,
+     "win_rate": 0.3879310344827586
+    }
+   },
+   {
+    "window": {
+     "train_start": "2023-12-22",
+     "train_end": "2024-06-25",
+     "test_start": "2024-06-26",
+     "test_end": "2024-09-20"
+    },
+    "selected_params": {
+     "top_n": 20,
+     "lookback": 60
+    },
+    "test_run_id": null,
+    "start_equity": 9981167.487865552,
+    "end_equity": 11148845.553994492,
+    "carried_positions": 19,
+    "costs": {
+     "commission": 172160.0,
+     "tax": 181542.0,
+     "slippage_vs_open": 349098.08,
+     "end_mark_selling_costs": 0.0
+    },
+    "results_hash": "fc82cf47170bc623a911e4004dfcbdfc14905af96612f73bf7a4fa48df4ecc17",
+    "test_metrics": {
+     "total_return": 0.11698812464058195,
+     "sharpe": 1.3831236643654736,
+     "max_drawdown": -0.19556657390283405,
+     "trades": 119,
+     "win_rate": 0.3865546218487395
+    }
+   },
+   {
+    "window": {
+     "train_start": "2024-03-28",
+     "train_end": "2024-09-20",
+     "test_start": "2024-09-23",
+     "test_end": "2024-12-19"
+    },
+    "selected_params": {
+     "top_n": 10,
+     "lookback": 20
+    },
+    "test_run_id": null,
+    "start_equity": 11148845.553994492,
+    "end_equity": 8208019.0689663105,
+    "carried_positions": 0,
+    "costs": {
+     "commission": 219245.0,
+     "tax": 232360.0,
+     "slippage_vs_open": 375677.16,
+     "end_mark_selling_costs": 30857.0
+    },
+    "results_hash": "f8ffad8016c5340253e1157b876469e3af8948b161ff3c9330d05088d663f3b4",
+    "test_metrics": {
+     "total_return": -0.26377856530396726,
+     "sharpe": -3.5833969113667865,
+     "max_drawdown": -0.2920801580982214,
+     "trades": 97,
+     "win_rate": 0.31958762886597936
+    }
+   }
+  ],
+  "oos_metrics": {
+   "days": 240,
+   "start": "2023-12-22",
+   "end": "2024-12-19",
+   "final_equity": 8208019.07,
+   "total_return": -0.17919809310336898,
+   "cagr": -0.1802021475626604,
+   "annual_volatility": 0.3470371267347899,
+   "sharpe": -0.42635145965228977,
+   "max_drawdown": -0.3235959620951645,
+   "max_drawdown_period": [
+    "2024-07-18",
+    "2024-12-17"
+   ],
+   "trades": 439,
+   "win_rate": 0.3735763097949886,
+   "avg_win": 76594.75168346941,
+   "avg_loss": -52154.90577869642,
+   "expectancy_per_trade": -4057.083856611689,
+   "profit_factor": 0.875820288778696,
+   "gross_pnl_closed_trades": -294753.8130525316,
+   "net_pnl_closed_trades": -1781059.8130525316,
+   "costs": {
+    "commission": 714234.0,
+    "tax": 741215.0,
+    "slippage_vs_open": 1319404.01,
+    "total_explicit": 1455449.0,
+    "total_incl_slippage": 2774853.01,
+    "end_mark_selling_costs": 30857.0
+   },
+   "turnover": 50.46420027036913,
+   "avg_exposure": 0.8784348744691515,
+   "net_of_costs": true,
+   "dividend_mode": "TOTAL_RETURN_REINVEST",
+   "usable_for_evaluation": true
+  },
+  "costs_total": {
+   "commission": 714234.0,
+   "tax": 741215.0,
+   "slippage_vs_open": 1319404.01,
+   "end_mark_selling_costs": 30857.0
+  },
+  "evaluation": {
+   "usable_for_evaluation": true,
+   "unusable_reasons": [],
+   "capital": "continuous: each window starts from the previous actual end state"
+  },
+  "results_hash": "6f8c09c7e0d2f3fab59f3b9dcca92e1d09077d79e5ed69a00a7c4684a9bb2d1f"
+ },
+ "out_of_sample": {
+  "seconds": 376.8,
+  "split": {
+   "train": [
+    "2023-07-03",
+    "2024-05-27"
+   ],
+   "test": [
+    "2024-09-12",
+    "2024-12-31"
+   ],
+   "validation": [
+    "2024-05-28",
+    "2024-09-11"
+   ]
+  },
+  "selected_params": {
+   "top_n": 20,
+   "lookback": 60
+  },
+  "parameter_search": [
+   {
+    "params": {
+     "top_n": 10,
+     "lookback": 20
+    },
+    "run_id": null,
+    "sharpe": -0.3394691125025267,
+    "total_return": -0.13799507293039615
+   },
+   {
+    "params": {
+     "top_n": 20,
+     "lookback": 60
+    },
+    "run_id": null,
+    "sharpe": 0.3724194724039532,
+    "total_return": 0.0589614235949909
+   }
+  ],
+  "validation": {
+   "metrics": {
+    "days": 74,
+    "start": "2024-05-28",
+    "end": "2024-09-11",
+    "final_equity": 9542785.07,
+    "total_return": -0.04572149295966532,
+    "cagr": -0.14892952150885286,
+    "annual_volatility": 0.3841818163590981,
+    "sharpe": -0.22987167736031125,
+    "max_drawdown": -0.19240938435235666,
+    "max_drawdown_period": [
+     "2024-07-18",
+     "2024-08-06"
+    ],
+    "trades": 158,
+    "win_rate": 0.36075949367088606,
+    "avg_win": 70072.33107209887,
+    "avg_loss": -44050.84681778547,
+    "expectancy_per_trade": -2879.8269461183345,
+    "profit_factor": 0.8977300973274127,
+    "gross_pnl_closed_trades": -31777.65748669681,
+    "net_pnl_closed_trades": -455012.65748669684,
+    "costs": {
+     "commission": 194558.0,
+     "tax": 192644.0,
+     "slippage_vs_open": 382911.67,
+     "total_explicit": 387202.0,
+     "total_incl_slippage": 770113.6699999999,
+     "end_mark_selling_costs": 36033.0
+    },
+    "turnover": 47.083436833221526,
+    "avg_exposure": 0.8544950310997281,
+    "net_of_costs": true,
+    "benchmark_total_return": -0.020196768195558157,
+    "excess_return_vs_benchmark": -0.025524724764107165,
+    "benchmark_max_drawdown": -0.1830999622168491,
+    "benchmark": {
+     "index": "TWSE:發行量加權股價報酬指數",
+     "kind": "total_return"
+    },
+    "dividend_mode": "TOTAL_RETURN_REINVEST",
+    "usable_for_evaluation": true
+   },
+   "evaluation": {
+    "usable_for_evaluation": true,
+    "unusable_reasons": [],
+    "untradable_holdings": [],
+    "terminal": "MARK"
+   }
+  },
+  "test": {
+   "metrics": {
+    "days": 74,
+    "start": "2024-09-12",
+    "end": "2024-12-31",
+    "final_equity": 8585218.26,
+    "total_return": -0.14147817398306017,
+    "cagr": -0.39740664561555405,
+    "annual_volatility": 0.2517615312387347,
+    "sharpe": -1.9652611915942637,
+    "max_drawdown": -0.2091492566140939,
+    "max_drawdown_period": [
+     "2024-10-07",
+     "2024-12-17"
+    ],
+    "trades": 154,
+    "win_rate": 0.2922077922077922,
+    "avg_win": 69442.12562456317,
+    "avg_loss": -41623.23234795045,
+    "expectancy_per_trade": -9169.069304034136,
+    "profit_factor": 0.6887684075091709,
+    "gross_pnl_closed_trades": -1019313.6728212571,
+    "net_pnl_closed_trades": -1412036.672821257,
+    "costs": {
+     "commission": 183286.0,
+     "tax": 182320.0,
+     "slippage_vs_open": 337816.32,
+     "total_explicit": 365606.0,
+     "total_incl_slippage": 703422.3200000001,
+     "end_mark_selling_costs": 27117.0
+    },
+    "turnover": 42.74578567752444,
+    "avg_exposure": 0.8255011809234294,
+    "net_of_costs": true,
+    "benchmark_total_return": 0.06565281852518834,
+    "excess_return_vs_benchmark": -0.2071309925082485,
+    "benchmark_max_drawdown": -0.05481206530450444,
+    "benchmark": {
+     "index": "TWSE:發行量加權股價報酬指數",
+     "kind": "total_return"
+    },
+    "dividend_mode": "TOTAL_RETURN_REINVEST",
+    "usable_for_evaluation": true
+   },
+   "evaluation": {
+    "usable_for_evaluation": true,
+    "unusable_reasons": [],
+    "untradable_holdings": [],
+    "terminal": "MARK"
+   }
+  }
+ }
+}

@@ -27,6 +27,7 @@ class Strategy:
         return hashlib.sha256(blob.encode()).hexdigest()
 
     def is_decision_day(self, d: date, prev: date | None) -> bool:
+        """`prev` is the real previous trading day (None only at the very start of a portfolio)."""
         return True
 
     def target_weights(self, view: DataView, holdings: dict[int, float]) -> dict[int, float] | None:
@@ -71,7 +72,7 @@ class EqualWeightLiquid(Strategy):
 
     def target_weights(self, view, holdings):
         eligible = view.universe().eligible
-        ind = view.indicators(eligible, ("turnover_ma20",))
+        ind = view.indicators(eligible, (20,)).dropna(subset=["turnover_ma20"])
         if ind.empty:
             return {}
         top = ind.sort_values(["turnover_ma20", "sid"], ascending=[False, True]).head(self.params["top_n"])
@@ -93,10 +94,10 @@ class MaTrendMomentum(Strategy):
 
     def target_weights(self, view, holdings):
         eligible = view.universe().eligible
-        ind = view.indicators(eligible, ("ma20", "ma60")).dropna()
+        ind = view.indicators(eligible, (20, 60)).dropna()
         if ind.empty:
             return {}
-        trend = ind[(ind.adj_close_stored > ind.ma20) & (ind.ma20 > ind.ma60)]
+        trend = ind[(ind.adj_close > ind.ma20) & (ind.ma20 > ind.ma60)]
         if trend.empty:
             return {}
         lb = int(self.params["lookback"])
