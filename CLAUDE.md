@@ -22,6 +22,7 @@ AI 台股量化研究與**模擬**交易系統：自主掃描上市櫃股票、�
 - **可交易性一致套用：** 選股、訊號、回測、模擬交易一律從 `build_universe()` / `tradability.blocked_securities()` 取得候選（排除處置、全額交割、分盤、管理、停止／暫停交易、未解釋價格異常）；基本面一律經 `fundamentals.latest_statements_as_of()`（只回傳有可靠公告時間的財報）。
 - **資料異常 → 安全模式。** 行情抓取失敗或資料不完整時 `system_state.safe_mode.on=true`，交易引擎必須拒絕新開倉。
 - **不得宣稱即時行情。** 目前沒有授權即時行情來源；盤中資料（TWSE MIS）是延遲快照，必須顯示 `delay_seconds`。
+- **migration 不得自動執行。** 正式環境只能經 `scripts\migrate.ps1`，並先取得使用者核准；服務一律用 `AQT_IMAGE` 指定的不可變映像（`aqt-backend:main-<commit>`）。
 - **金鑰只用環境變數**（`.env`，見 `.env.example`），不得寫死、不得提交。
 - **不得編造資料。** 測試用的合成資料只能放在 `backend/tests/fixtures/`，且必須標註 `SYNTHETIC`。
 
@@ -51,7 +52,7 @@ backend/alembic/       0001 schema、0002 稽核觸發器
 ## 常用指令
 ```bash
 cd backend
-python -m aqt.cli init-db                      # 套用 migration
+python -m aqt.cli init-db --apply-migrations   # 只在開發環境；正式環境用 scripts\migrate.ps1
 python -m aqt.cli check-sources                # 真實資料來源 + 解析器煙霧測試（需可連到 twse/tpex）
 python -m aqt.cli sync-securities              # 證券主檔
 python -m aqt.cli sync-calendar --year 2026    # 休市日

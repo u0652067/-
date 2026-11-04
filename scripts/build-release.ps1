@@ -11,7 +11,7 @@ if ((Test-Native git merge-base --is-ancestor $full origin/main) -ne 0) { throw 
 $short = $full.Substring(0, 12)
 $tag = "aqt-backend:main-$short"
 if ((Test-Native docker image inspect $tag) -eq 0) {
-    $rev = & docker image inspect $tag --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
+    $rev = Get-ImageRevision $tag
     if ($rev -ne $full) { throw "$tag exists with revision $rev" }
     Write-Host "$tag already exists (same commit); not rebuilding."
 } else {

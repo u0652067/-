@@ -38,6 +38,13 @@ function Invoke-Cli {
     if ($LASTEXITCODE -ne 0) { throw "aqt.cli $($args -join ' ') failed (exit $LASTEXITCODE)" }
 }
 
+function Get-ImageRevision([string]$Image) {
+    # JSON, because PowerShell 5.1 strips the inner quotes of a format string naming the label
+    $labels = & docker image inspect $Image --format '{{json .Config.Labels}}'
+    if ($LASTEXITCODE -ne 0) { return $null }
+    return ($labels | ConvertFrom-Json).'org.opencontainers.image.revision'
+}
+
 function Assert-ReleaseImage {
     # AQT_IMAGE must be an immutable tag of a commit on main, and the image must say the same commit
     $image = Get-EnvValue 'AQT_IMAGE'
@@ -45,8 +52,8 @@ function Assert-ReleaseImage {
         throw "AQT_IMAGE='$image' is not an immutable release tag (aqt-backend:main-<12 hex>). Build one with scripts\build-release.ps1 and put it in .env."
     }
     $short = $Matches[1]
-    $rev = & docker image inspect $image --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'
-    if ($LASTEXITCODE -ne 0) { throw "Image $image does not exist on this machine. Build it with scripts\build-release.ps1." }
+    $rev = Get-ImageRevision $image
+    if ($null -eq $rev) { throw "Image $image does not exist on this machine or has no revision label. Build it with scripts\build-release.ps1." }
     if (-not $rev.StartsWith($short)) { throw "Image $image is labelled with commit $rev, not ${short}: refusing it." }
     return $image
 }

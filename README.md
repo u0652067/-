@@ -17,11 +17,14 @@
 ### 2. 指令（在專案根目錄執行）
 | 動作 | 指令 |
 |---|---|
-| 啟動／更新（db + migrate + api + scheduler） | `.\scripts\start.ps1` |
+| 建立正式映像（只接受 main 上的 commit） | `.\scripts\build-release.ps1`，把印出的標籤寫進 `.env` 的 `AQT_IMAGE` |
+| 啟動（db + api + scheduler，不建置、不 migration） | `.\scripts\start.ps1` |
+| 查看資料庫與映像的 schema 版本 | `.\scripts\migrate.ps1 -Status` |
+| 套用 migration（經核准後才可執行） | `.\scripts\migrate.ps1 -Backup backups\<已驗證備份>.dump -IHaveApproval` |
 | 停止（資料保留） | `.\scripts\stop.ps1`（`-Remove` 會移除容器，但**不會**刪資料） |
 | 來源健康檢查 | `.\scripts\health.ps1` |
-| 備份 | `.\scripts\backup.ps1`（`-Verify` 會還原到暫存資料庫比對筆數） |
-| 還原 | `.\scripts\restore.ps1 -File backups\aqt_YYYYMMDD_HHMMSS.dump -Force` |
+| 備份 | `.\scripts\backup.ps1`（`-Verify` 會還原到暫存資料庫，比對**每一張**資料表的筆數） |
+| 還原 | `.\scripts\restore.ps1 -File backups\aqt_YYYYMMDD_HHMMSS.dump -Force`（`-NoStart` 還原後不啟動服務） |
 | 小批次回補驗收 | `.\scripts\backfill.ps1 smoke -Start 2024-01-02 -End 2024-01-12` |
 | 全量回補（2019 起，背景、可續傳） | `.\scripts\backfill.ps1 start`（先自動做驗證過的備份與完整性基準） |
 | 回補進度／停止／日誌 | `.\scripts\backfill.ps1 status` ／ `stop` ／ `logs` |
@@ -29,6 +32,12 @@
 | 自動化測試（拋棄式資料庫） | `.\scripts\test.ps1` |
 
 第一次執行 `start.ps1` 會從 `.env.example` 產生 `.env` 並填入隨機資料庫密碼。API：<http://127.0.0.1:8000/docs>（只綁本機）。
+
+### 2.1 部署安全規則
+- **migration 不會自動執行。** `start.ps1`、`docker compose up`、重開機、服務重啟都不會升級資料庫；`migrate` 服務放在獨立 profile，只由 `migrate.ps1` 執行，且必須有已驗證的備份與 `-IHaveApproval`。
+- **版本不符就拒絕。** `start.ps1` 與 `restore.ps1` 比對資料庫版本和映像內的 migration head，不符就不啟動服務；含本修正的映像，`api`、`scheduler` 與其他資料庫指令本身也會拒絕啟動。
+- **正式映像不可變。** `AQT_IMAGE` 必須是 `aqt-backend:main-<commit 前 12 碼>`。映像由 `git archive` 取該 commit 建置，不受目前分支或本機修改影響，標籤不會被覆蓋。不再有共用的 `aqt-backend:local`；`docker-compose.yml` 的正式服務沒有 `build:`。
+- **回復政策。** `alembic downgrade` 只能在尚未寫入任何回測／稽核紀錄時使用（`rollback-check` 把關）；之後唯一標準回復方式是從 pre-migration 備份還原。不要直接執行 `alembic downgrade`。詳見 `evidence/MIGRATION_PLAN_0004_0005.md`。
 
 ### 3. 資料存放（容器重建不會遺失）
 | 內容 | 位置 |
@@ -52,7 +61,7 @@
 cp .env.example .env
 cd backend
 pip install -e ".[dev]"
-python -m aqt.cli init-db
+python -m aqt.cli init-db --apply-migrations
 python -m aqt.cli health-check
 python -m pytest -q        # 需本機 PostgreSQL 資料庫 aqt_test
 ```
