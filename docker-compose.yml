@@ -9,11 +9,16 @@
 #   ./data/reports  -> health-check / integrity reports (JSON + Markdown)
 #   ./backups       -> pg_dump files made by scripts\backup.ps1
 # Rebuilding or removing containers never touches any of these.
+#
+# Deployment safety:
+#   * AQT_IMAGE must be an immutable release tag built by scripts\build-release.ps1 (aqt-backend:main-<commit>).
+#     There is no `build:` here on purpose: a service can never pick up whatever branch is checked out.
+#   * Nothing here migrates. The `migrate` service is behind a profile and only runs through
+#     scripts\migrate.ps1; api and scheduler refuse to start on a schema they were not built for.
 name: aqt
 
 x-app: &app
-  build: ./backend
-  image: aqt-backend:local
+  image: ${AQT_IMAGE:?set AQT_IMAGE to an immutable release tag, see scripts/build-release.ps1}
   env_file: .env
   environment: &app-env
     AQT_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-aqt}:${POSTGRES_PASSWORD}@db:5432/aqt
@@ -49,9 +54,11 @@ services:
     logging: *logging
     restart: unless-stopped
 
+  # Only through scripts\migrate.ps1, after approval: `up`, a restart or a reboot never runs it.
   migrate:
     <<: *app
-    command: ["python", "-m", "aqt.cli", "init-db"]
+    profiles: ["migrate"]
+    command: ["python", "-m", "aqt.cli", "init-db", "--apply-migrations"]
     depends_on: { db: { condition: service_healthy } }
     restart: "no"
 
@@ -59,13 +66,13 @@ services:
     <<: *app
     command: ["python", "-m", "aqt.cli", "api", "--port", "8000"]
     ports: ["127.0.0.1:8000:8000"]
-    depends_on: { migrate: { condition: service_completed_successfully } }
+    depends_on: { db: { condition: service_healthy } }
     restart: unless-stopped
 
   scheduler:
     <<: *app
     command: ["python", "-m", "aqt.cli", "scheduler"]
-    depends_on: { migrate: { condition: service_completed_successfully } }
+    depends_on: { db: { condition: service_healthy } }
     restart: unless-stopped
 
   # Full historical backfill: `scripts\backfill.ps1 start`. Resumable; restarts itself after a crash
@@ -74,7 +81,7 @@ services:
     <<: *app
     profiles: ["backfill"]
     command: ["python", "-m", "aqt.cli", "backfill-full", "--start", "${AQT_BACKFILL_START:-2019-01-01}"]
-    depends_on: { migrate: { condition: service_completed_successfully } }
+    depends_on: { db: { condition: service_healthy } }
     stop_grace_period: 60s
     restart: on-failure
 
@@ -91,6 +98,8 @@ services:
 
   test:
     <<: *app
+    build: ./backend
+    image: aqt-backend:test  # working-tree code, never used for api / scheduler
     profiles: ["test"]
     environment:
       AQT_TEST_DATABASE_URL: postgresql+psycopg://postgres:test@testdb:5432/aqt_test

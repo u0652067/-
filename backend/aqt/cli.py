@@ -35,10 +35,32 @@ def _sigterm_as_exit() -> None:
     signal.signal(signal.SIGTERM, handler)
 
 
+def _require_schema_unless_offline(cmd: str) -> None:
+    """Every database command refuses to run on a schema this build was not made for."""
+    if cmd in ("health-check", "check-sources"):  # these never touch the database
+        return
+    from aqt.db import get_engine
+    from aqt.schema_guard import SchemaMismatch, require_schema
+    try:
+        require_schema(get_engine())
+    except SchemaMismatch as e:
+        logging.getLogger("aqt").error(str(e))
+        raise SystemExit(str(e)) from None
+
+
 def main(argv=None) -> None:
     p = argparse.ArgumentParser(prog="aqt")
     sub = p.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("init-db", help="apply all migrations")
+    db = sub.add_parser("init-db", help="apply all migrations (explicit: use scripts\\migrate.ps1)")
+    db.add_argument("--apply-migrations", action="store_true", help="required: migrations never run implicitly")
+    sub.add_parser("schema-status", help="database schema vs what this build expects")
+    sub.add_parser("rollback-check", help="may alembic downgrade be used? (only before any audit record exists)")
+    ta = sub.add_parser("table-audit", help="row count + content hash of every table")
+    ta.add_argument("--out", required=True)
+    ta.add_argument("--columns-from", help="earlier audit: hash the columns it listed")
+    tc = sub.add_parser("table-compare", help="compare two table-audit files")
+    tc.add_argument("before")
+    tc.add_argument("after")
     u = sub.add_parser("update-daily", help="run the EOD pipeline for one date (default: today)")
     u.add_argument("--date", type=_d)
     b = sub.add_parser("backfill", help="date-by-date historical backfill")
@@ -97,10 +119,39 @@ def main(argv=None) -> None:
     _sigterm_as_exit()
 
     if args.cmd == "init-db":
+        if not args.apply_migrations:
+            raise SystemExit("init-db refused: pass --apply-migrations (migrations never run implicitly)")
         from alembic import command
         from alembic.config import Config
         command.upgrade(Config("alembic.ini"), "head")
         return
+    if args.cmd == "table-compare":
+        from aqt.table_audit import main_compare
+        out = main_compare(args.before, args.after)
+        print(json.dumps(out, ensure_ascii=False, indent=2))
+        raise SystemExit(0 if out["identical"] else 1)
+    if args.cmd in ("schema-status", "rollback-check", "table-audit"):
+        from aqt import schema_guard, table_audit
+        from aqt.db import get_engine
+        engine = get_engine()
+        if args.cmd == "schema-status":
+            out = schema_guard.schema_status(engine)
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+            raise SystemExit(0 if out["match"] else 3)
+        if args.cmd == "rollback-check":
+            out = schema_guard.rollback_check(engine)
+            print(json.dumps(out, ensure_ascii=False, indent=2))
+            raise SystemExit(0 if out["downgrade_allowed"] else 4)
+        ref = None
+        if args.columns_from:
+            with open(args.columns_from, encoding="utf-8") as fh:
+                ref = json.load(fh)
+        out = table_audit.audit_tables(engine, ref)
+        with open(args.out, "w", encoding="utf-8") as fh:
+            json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
+        print(json.dumps({t: v["rows"] for t, v in out.items()}, indent=0))
+        return
+    _require_schema_unless_offline(args.cmd)
     if args.cmd == "scheduler":
         from aqt.jobs.scheduler import main as sched_main
         sched_main()
