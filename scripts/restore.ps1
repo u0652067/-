@@ -28,7 +28,7 @@ Invoke-Compose exec -T db pg_restore -U $user -d aqt --no-owner "/backups/$name"
 $st = Get-SchemaState
 Write-Host "Restored $name. Database schema: $($st.Database); $($st.Image) expects: $($st.ImageHead)"
 if (-not $st.Match) {
-    throw "Restored, but AQT_IMAGE does not match the restored schema: api and scheduler stay stopped and nothing was migrated. Set AQT_IMAGE to the release of schema $($st.Database) (scriptsuild-release.ps1 -Commit <commit>), then run scripts\start.ps1."
+    throw "Restored, but AQT_IMAGE does not match the restored schema: api and scheduler stay stopped and nothing was migrated. Set AQT_IMAGE to the release of schema $($st.Database) (scripts\build-release.ps1 -Commit <commit>), then run scripts\start.ps1."
 }
 if ($NoStart) { Write-Host 'Done. api and scheduler stay stopped (-NoStart).'; exit 0 }
 Invoke-Compose up -d --no-deps api scheduler

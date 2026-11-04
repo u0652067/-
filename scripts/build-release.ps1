@@ -15,19 +15,10 @@ if ((Test-Native docker image inspect $tag) -eq 0) {
     if ($rev -ne $full) { throw "$tag exists with revision $rev" }
     Write-Host "$tag already exists (same commit); not rebuilding."
 } else {
-    $tmp = Join-Path ([IO.Path]::GetTempPath()) ("aqt-release-" + $short)
-    if (Test-Path $tmp) { Remove-Item -Recurse -Force $tmp -Confirm:$false }
-    New-Item -ItemType Directory -Force $tmp | Out-Null
-    $tar = Join-Path $tmp 'src.tar'
-    & git archive --format=tar -o $tar $full backend
-    if ($LASTEXITCODE -ne 0) { throw "git archive failed" }
-    & tar -xf $tar -C $tmp
-    if ($LASTEXITCODE -ne 0) { throw "tar failed" }
-    # the label is set here as well, so commits older than the Dockerfile ARG (rollback images) carry it too
-    & docker build -t $tag --build-arg "AQT_BUILD_COMMIT=$full" --label "org.opencontainers.image.revision=$full" (Join-Path $tmp 'backend')
-    $code = $LASTEXITCODE
-    Remove-Item -Recurse -Force $tmp -Confirm:$false
-    if ($code -ne 0) { throw "docker build failed" }
+    # the label is set here as well, so commits older than the Dockerfile ARG (rollback images) carry it too.
+    # cmd.exe because PowerShell 5.1 pipelines corrupt binary data.
+    & cmd /c "git archive --format=tar ${full}:backend | docker build -t $tag --build-arg AQT_BUILD_COMMIT=$full --label org.opencontainers.image.revision=$full -"
+    if ($LASTEXITCODE -ne 0) { throw "docker build failed" }
 }
 $id = & docker image inspect $tag --format '{{.Id}}'
 New-DataDirs

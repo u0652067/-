@@ -1,4 +1,4 @@
-# Consistent PostgreSQL backup (pg_dump custom format) into .ackups, plus sha256 and row-count manifest.
+# Consistent PostgreSQL backup (pg_dump custom format) into .\backups, plus sha256 and row-count manifest.
 #   -Verify   restore the dump into a scratch database and compare the row count of EVERY table with the live one.
 #             Before a migration stop api and scheduler first: a write during the backup fails the comparison.
 param([switch]$Verify, [string]$Label = '')
