@@ -91,7 +91,7 @@ docker compose up -d --no-deps api scheduler
 ```powershell
 docker compose stop api scheduler
 docker compose run --rm --no-deps api python -m alembic downgrade 0003
-$env:AQT_IMAGE_NOTE="使用 prod-0003"; docker tag aqt-backend:prod-0003 aqt-backend:local
+docker tag aqt-backend:prod-0003 aqt-backend:local
 docker compose up -d --no-deps api scheduler
 ```
 注意：

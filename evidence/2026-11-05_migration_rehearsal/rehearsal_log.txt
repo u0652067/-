@@ -1,0 +1,69 @@
+=== 2026-11-04 23:00:50 1. backup of production (pg_dump -Fc via scripts/backup.ps1)
+Backup OK: E:\自我成長股票分析\backups\aqt_20261104_230051_pre_migration_rehearsal.dump (1545.8 MB, sha256 dac821c7e4fafcfd9be90958ab5ea9b2e96854c88fd1b904c328af02fdf618be)
+=== 2026-11-04 23:07:35 backup took 405s; file aqt_20261104_230051_pre_migration_rehearsal.dump size 1620895745
+=== 2026-11-04 23:07:35 2. restore drill: restore that dump into scratch database
+NOTICE:  database "aqt_mig_scratch" does not exist, skipping
+=== 2026-11-04 23:10:56 restore took 201s; alembic version: 0003
+=== 2026-11-04 23:11:24 row counts restored vs dump manifest compared below
+restore vs backup manifest: tables checked 12 mismatches []
+=== 2026-11-04 23:11:24 3. upgrade 0003 -> head
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, PHASE 2: reproducible, append-only backtest records
+INFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, Point-in-time audit of data-quality exclusions; flags for backtests affected by later discoveries
+=== 2026-11-04 23:11:29 upgrade took 4s; version: 0005
+=== 2026-11-04 23:11:42 row counts identical before/after upgrade (23 tables)
+=== 2026-11-04 23:11:42 4. post-upgrade verification
+-- new columns
+backtest_runs|benchmark_comparable|YES
+backtest_runs|data_manifest|NO
+backtest_runs|dividend_mode|YES
+backtest_runs|evaluation|NO
+data_quality_issues|detection_method|NO
+data_quality_issues|effective_at|NO
+data_quality_issues|known_at|NO
+-- nulls in time columns
+0|0
+-- detection / span
+AUTO_RULE|5837|2019-01-02 17:45:00+08|2026-11-03 17:45:00+08
+-- rows whose effective_at is not trade day 17:45 Taipei
+0
+-- append-only triggers
+backtest_runs|backtest_runs_append_only
+backtest_runs|backtest_runs_no_truncate
+backtest_trades|backtest_trades_append_only
+backtest_trades|backtest_trades_no_truncate
+backtest_run_invalidations|backtest_run_invalidations_append_only
+backtest_run_invalidations|backtest_run_invalidations_no_truncate
+-- total triggers
+28
+=== 2026-11-04 23:11:45 readiness: integrity-check on upgraded copy
+{"window": "2019-01-01..2026-10-31", "checked_at": "2026-11-04T15:11:51+00:00", "quality_status": "REVIEWED_WITH_EXCLUSIONS", "coverage_complete": true, "technical_backtest_ready": true, "fundamental_backtest_ready": false, "fundamental_not_ready_reason": "618 financial statements lack a verified publication time"}
+=== 2026-11-04 23:11:56 smoke: persisted backtest (2024-Q1) and record checks
+  "run_id": 1,
+  "results_hash": "2212f748638a9c2828561c738bc0ffa5d669275dda26b6a27ec2e6e724423d6b",
+    "total_return": 0.12552299916271203,
+=== 2026-11-04 23:12:06 smoke took 10s
+1|IN_SAMPLE|TOTAL_RETURN_REINVEST|total_return|f|t|b5325f76a323|64
+append-only check [update backtest_runs set metrics='{}']: CONTEXT:  PL/pgSQL function aqt_forbid_change() line 3 at RAISE
+append-only check [delete from backtest_runs]: CONTEXT:  PL/pgSQL function aqt_forbid_change() line 3 at RAISE
+=== 2026-11-04 23:12:08 5. downgrade to 0003 (rollback path) and schema comparison
+INFO  [alembic.runtime.migration] Running downgrade 0005 -> 0004, Point-in-time audit of data-quality exclusions; flags for backtests affected by later discoveries
+INFO  [alembic.runtime.migration] Running downgrade 0004 -> 0003, PHASE 2: reproducible, append-only backtest records
+=== 2026-11-04 23:12:11 downgrade took 2s; version: 0003
+=== 2026-11-04 23:12:11 schema differs after downgrade: 8 diff lines (see schema_diff.txt)
+20,23c20,23
+< strategies 0
+< strategy_versions 0
+< backtest_runs 0
+< backtest_trades 0
+---
+> strategies 1
+> strategy_versions 1
+> backtest_runs 1
+> backtest_trades 10
+=== 2026-11-04 23:12:24 6. re-upgrade after rollback
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, PHASE 2: reproducible, append-only backtest records
+INFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, Point-in-time audit of data-quality exclusions; flags for backtests affected by later discoveries
+=== 2026-11-04 23:12:27 version: 0005
+=== 2026-11-04 23:12:27 7. cleanup
+production alembic version: 0003
+=== 2026-11-04 23:12:41 done
