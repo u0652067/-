@@ -44,6 +44,7 @@ backend/aqt/research/
 |---|---|
 | 成交日沒有開盤價 | 不成交。買單取消；賣單隔天重試，最多 20 天 |
 | **成交日當天的全日成交量、最高、最低、收盤** | **完全不讀取**，這些在開盤時還不可知 |
+| 限制資料的時點 | 只用成交日 **09:00** 以前已公開、且當天生效的限制與品質排除（`blocked_securities(d, known_at=d 09:00, include_upcoming=False)`）；收盤決策則用 T 日 18:00 |
 | 成交日屬停止交易或暫停交易 | 不成交，原因 `restricted:*` |
 | 成交日屬處置、全額交割、分盤或管理股票 | **不得新買**；賣出可以 |
 | 買進時開盤價 ≥ 漲停價 | 不成交（`limit_up_at_open`） |
@@ -63,6 +64,8 @@ backend/aqt/research/
 - 還原價由 DataView **自行重建**，只用除權息日 ≤ d、而且在決策時已公開的公司事件。資料庫裡存的還原因子與技術指標表都包含之後才公開的事件，所以完全不使用。MA20、MA60、20 日均成交值也都從這份時點正確的歷史資料計算。
 - 候選股票只能來自 `build_universe(d)`，它會套用處置、全額交割、分盤、管理、停止或暫停交易、未解釋的價格異常、流動性、價格與歷史天數等排除規則。股票池以外的目標一律拒絕（`not_in_universe`）。
 - 基本面：`DataView.fundamentals()` 預設丟出 `FundamentalsNotAllowed`。`allow_fundamentals=True` 也只有在 `system_state.data_readiness.fundamental_backtest_ready = true` 時才允許，而且只會回傳公告時間經過驗證的財報。
+- 品質排除：`data_quality_issues` 記錄 `known_at`、`effective_at`、`detection_method`。規則檢查（`AUTO_RULE`）只用當天已公布的資料，在當天 17:45 生效。事後發現的異常只從發現時間起生效，不改變歷史股票池；受影響的既有回測寫入 `backtest_run_invalidations`（`NEEDS_RERUN`），用 `records.run_validity()` 查詢。
+- 排程：`is_decision_day()` 一律以真正的前一交易日判斷，`PortfolioState.last_trading_day` 會跨視窗延續，視窗切分不是事件。
 - 測試：
   - 把截止日之後的價格全部竄改，截止日以前的回測結果雜湊必須完全不變。
   - 截止日之後才公開的公司事件，不可影響截止日以前的結果。
@@ -98,7 +101,7 @@ python -m aqt.research.dry_run 2024-01-01 2024-12-31 2023-07-01   # 不寫紀錄
 ## 已知簡化與限制
 - 只有日 K，以開盤價成交。沒有盤中模擬，也沒有零股。
 - 公司事件只有總報酬再投資模式，沒有模擬現金股利入帳的時間差，也沒有模擬配股入帳的延遲。
-- 基準指數：總報酬模式只和**「發行量加權股價報酬指數」**（含股利）比較。TAIEX 價格指數只當作參考列出，並標示為「不可比較」，不計算超額報酬。報酬指數只涵蓋上市股票，策略股票池則包含上櫃，口徑仍不完全一致。
+- 基準指數：`發行量加權股價報酬指數` 含股利，但只涵蓋上市市場。策略市場（`markets`，預設上市＋上櫃）超出基準範圍時 `benchmark_comparable=false`，不計算、不顯示超額報酬，指數報酬只列在 `reference_only_total_return`。要比較必須限定 `markets=("TWSE",)`，或日後接上經驗證的全市場基準。TAIEX 價格指數永遠不可比較。
 - 期末評價（`END_MARK`）：最後一段仍持有的部位，以最後收盤價扣除賣出成本計算價值。這是評價，不是成交，fills 會標示 `END_MARK`。
 - 下市（G9）：沒有官方下市事件，無法交易的持股只能凍結並把回測標為不可用，不會自動出場。
 - 尚未有模擬交易引擎（PHASE 3）；本引擎不會產生任何真實或模擬下單。
