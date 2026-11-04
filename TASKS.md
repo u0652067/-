@@ -1,6 +1,6 @@
 # TASKS（進度追蹤 — 每次收工更新）
 
-最後更新：2026-11-03｜目前階段：**PHASE 1 條件式驗收候選＋缺口修正 PR 待審（未進入 PHASE 2）**｜測試：124 passed（PHASE 2 分支，本機 Docker）
+最後更新：2026-11-05｜目前階段：**PHASE 2 研究登錄計畫第一次執行完成，待審；正式庫維持 0003；不得開始 PHASE 3**｜測試：154 passed（研究分支）
 
 ## PHASE 1 條件式驗收 — 狀態說明
 「條件式」= 程式與部署流程完成、真實來源在本機（台灣家用 IP）驗證可用，但下列資料缺口尚未補齊或尚無官方來源。缺口補齊並經使用者驗收前，**不得進入 PHASE 2**。
@@ -103,7 +103,10 @@
 - [x] 基準策略：`cash_baseline`、`ew_liquid_baseline`；最小技術範例：`ma_trend_momentum`
 - [x] 真實資料乾跑（不寫紀錄，2024 年、Walk-forward 2023-07～2024-12）：三個策略兩次執行結果雜湊相同
 - [x] 引擎在 technical_backtest_ready=false 時拒絕執行；每次執行記錄當下 readiness
-- [ ] 評分分位 vs 未來報酬驗證（待 PHASE 2 後續）
+- [x] 評分分位 vs 未來報酬驗證（`factors.py`，24 組，Holm 校正，`evidence/PHASE2_research_report.md`）
+- [x] 候選登錄、市場環境分析、晉級規則（`registry.py`、`regimes.py`、`promotion.py`）
+- [x] 候選 `V1-bbe8a8a9` 審查：未通過 BACKTESTED，維持 CANDIDATE
+- [ ] 0006 不得套用到正式庫，等 PR 審查與使用者授權
 - [ ] 更多策略（突破、拉回、量能、法人）— 待驗收後
 - [x] 2026-11-04 審查修正（7 項）：歷史均量上限、fail closed、不以事後資訊出場、股利模式＋報酬指數基準、連續資金 Walk-forward、資料內容指紋、公司事件 available_at
 - [x] 2026-11-04 第二輪審查修正（4 項）：known_at 明確化、品質問題 effective_at＋NEEDS_RERUN、再平衡排程跨視窗、基準市場範圍

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## [0.4.0] — 2026-11-05 — PHASE 2 研究層（分支 `claude/phase2-research`，待審）
+- 候選登錄、因子驗證（IC、分位、Holm）、市場環境分析、晉級規則；migration 0006（未套用到正式庫）。
+- 登錄計畫在暫存複本執行：候選 `V1-bbe8a8a9` 未通過 BACKTESTED（全期淨 Sharpe -0.14），維持 CANDIDATE。不構成任何策略有效的宣稱。
+- 測試 154 passed。
+
 ## [0.3.2] — 2026-11-04 — PHASE 2 第二輪審查修正（同分支 `claude/phase2-fixes`，PR #5 待審）
 - #1 `blocked_securities()` 的 `known_at` 改為必填；決策用 T 18:00，開盤成交用 T+1 09:00，且只看當日生效的限制。修正前有 30 筆委託被當晚才公告的處置擋下（時間洩漏）。
 - #2 migration 0005：`data_quality_issues.known_at/effective_at/detection_method`；`record_post_hoc_issue()`；只能新增的 `backtest_run_invalidations`；`run_validity()`；三欄納入資料指紋。
