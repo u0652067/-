@@ -40,6 +40,7 @@ from aqt.research import DISCLAIMER, ENGINE_VERSION
 from aqt.research.costs import CostModel, FillResult
 from aqt.research.dataview import ALL_MARKETS, DEFAULT_DECISION_TIME, DataView, FundamentalsNotAllowed
 from aqt.research.metrics import compute_metrics
+from aqt.research.regimes import load_regimes, regime_metrics
 from aqt.research.strategies import Strategy
 
 log = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ class BacktestConfig:
     dividend_mode: str = "TOTAL_RETURN_REINVEST"
     volume_lookback_days: int = 20  # participation cap basis: average daily volume up to the decision day
     markets: tuple[str, ...] = ALL_MARKETS  # universe scope; the benchmark comparison depends on it
+    universe_cache: dict | None = field(default=None, compare=False, repr=False)  # speed only, never serialised
     terminal: str = "MARK"  # MARK: open positions are valued at the last close net of selling costs
                             # (labelled, not an execution); CARRY: state handed to the next walk-forward window
 
@@ -146,6 +148,7 @@ class BacktestResult:
     benchmark: dict
     evaluation: dict = field(default_factory=dict)  # usability verdict + untradable holdings
     rebalance_days: list = field(default_factory=list)  # days the strategy actually decided
+    regime_metrics: dict = field(default_factory=dict)
     final_state: PortfolioState | None = None
     disclaimer: str = DISCLAIMER
 
@@ -437,7 +440,8 @@ class Backtester:
             # the last day of the final window has no next open; a CARRY window fills in the next one
             can_fill_later = d != days[-1] or self.cfg.terminal == "CARRY"
             if self.strategy.is_decision_day(d, prev) and can_fill_later:
-                view = DataView(self.s, d, self.cfg.decision_time, self.cfg.allow_fundamentals, self.cfg.markets)
+                view = DataView(self.s, d, self.cfg.decision_time, self.cfg.allow_fundamentals, self.cfg.markets,
+                                self.cfg.universe_cache)
                 targets = self.strategy.target_weights(view, {k: v.shares for k, v in self.pos.items()})
                 if targets is not None:
                     self._rebalance(d, targets, view)
@@ -473,7 +477,8 @@ class Backtester:
                                         "params": self.strategy.params, "params_hash": self.strategy.params_hash()},
                               equity_curve=self.equity_curve, trades=self.trades, fills=self.fills,
                               rejections=self.rejections, metrics=metrics, benchmark=bench, evaluation=evaluation,
-                              rebalance_days=self.rebalance_days, final_state=deepcopy(state))
+                              rebalance_days=self.rebalance_days, final_state=deepcopy(state),
+                              regime_metrics=regime_metrics(self.equity_curve, load_regimes(self.s, end)))
 
     def _benchmark(self, days: list[date]) -> dict:
         if not days:

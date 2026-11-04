@@ -29,9 +29,11 @@ class FundamentalsNotAllowed(RuntimeError):
 
 class DataView:
     def __init__(self, session: Session, as_of: date, decision_time: time = DEFAULT_DECISION_TIME,
-                 allow_fundamentals: bool = False, markets: tuple[str, ...] = ALL_MARKETS):
+                 allow_fundamentals: bool = False, markets: tuple[str, ...] = ALL_MARKETS,
+                 universe_cache: dict | None = None):
         self._s = session
         self.markets = tuple(markets)
+        self._cache = universe_cache  # same as_of and decision time -> same universe, within one run
         self.as_of = as_of
         self.decision_at = datetime.combine(as_of, decision_time, tzinfo=TPE)
         self._allow_fundamentals = allow_fundamentals
@@ -41,7 +43,13 @@ class DataView:
     def universe(self) -> Universe:
         """The only source of tradable candidates (restrictions, quality blocks, liquidity, history)."""
         if self._universe is None:
-            u = build_universe(self._s, self.as_of, known_at=self.decision_at)
+            key = (self.as_of, self.decision_at)
+            u = self._cache.get(key) if self._cache is not None else None
+            if u is None:
+                u = build_universe(self._s, self.as_of, known_at=self.decision_at)
+                if self._cache is not None:
+                    self._cache[key] = u
+            u = Universe(u.as_of, list(u.eligible), dict(u.excluded))
             if set(self.markets) != set(ALL_MARKETS):  # strategy restricted to the benchmark's market
                 inside = set(self._s.scalars(select(Security.id).where(Security.market.in_(self.markets))))
                 for sid in [s for s in u.eligible if s not in inside]:

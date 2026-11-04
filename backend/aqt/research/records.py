@@ -18,7 +18,7 @@ from aqt.research.fingerprint import data_fingerprint
 from aqt.research.strategies import Strategy
 
 _CODE_FILES = ("research/engine.py", "research/costs.py", "research/dataview.py", "research/strategies.py",
-               "research/metrics.py", "research/splits.py", "research/fingerprint.py", "research/evaluation.py", "data/universe.py", "data/tradability.py",
+               "research/metrics.py", "research/splits.py", "research/fingerprint.py", "research/evaluation.py", "research/regimes.py", "data/universe.py", "data/tradability.py",
                "data/tw_rules.py", "data/fundamentals.py")
 
 
@@ -50,7 +50,7 @@ def _hash(obj) -> str:
     return hashlib.sha256(json.dumps(obj, sort_keys=True, default=str).encode()).hexdigest()
 
 
-def strategy_version_id(session: Session, strategy: Strategy) -> int:
+def strategy_version_id(session: Session, strategy: Strategy, change_reason: str = "PHASE 2 research run") -> int:
     """Get-or-create the immutable version row. Same code+version with different params is refused:
     parameters can never change under an existing version label."""
     srow = session.scalar(select(StrategyRow).where(StrategyRow.code == strategy.code))
@@ -64,7 +64,7 @@ def strategy_version_id(session: Session, strategy: Strategy) -> int:
                                                      StrategyVersion.version == label))
     if v is None:
         v = StrategyVersion(strategy_id=srow.id, version=label, params=strategy.params, code_ref=code_fingerprint()[:40],
-                            change_reason="PHASE 2 research run", stage="CANDIDATE")
+                            change_reason=change_reason, stage="CANDIDATE")
         session.add(v)
         session.flush()
     elif v.params != strategy.params:
@@ -80,7 +80,7 @@ def save_run(session: Session, strategy: Strategy, result: BacktestResult, kind:
         strategy_version_id=strategy_version_id(session, strategy), kind=kind,
         period_start=date.fromisoformat(result.config["start"]), period_end=date.fromisoformat(result.config["end"]),
         universe_rule="build_universe+tradability.blocked_securities",
-        cost_model=result.config["cost_model"], metrics=result.metrics, regime_metrics={},
+        cost_model=result.config["cost_model"], metrics=result.metrics, regime_metrics=result.regime_metrics,
         equity_curve=result.equity_curve, data_snapshot_at=datetime.now(timezone.utc),
         code_ref=code_fingerprint()[:40], status="DONE", config=cfg, params_hash=strategy.params_hash(),
         data_version=dv, data_version_hash=fp["sha256"], data_manifest=fp, results_hash=result.results_hash(),

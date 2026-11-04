@@ -89,6 +89,13 @@ def main(argv=None) -> None:
     ev.add_argument("--train-days", type=int, default=500)
     ev.add_argument("--test-days", type=int, default=120)
     ev.add_argument("--anchored", action="store_true")
+    fs = sub.add_parser("factor-study", help="PHASE 2: factor / score predictive-power study (before costs)")
+    fs.add_argument("--start", type=_d, required=True)
+    fs.add_argument("--end", type=_d, required=True)
+    fs.add_argument("--horizon", type=int, default=20)
+    fs.add_argument("--markets", default="TWSE,TPEX")
+    fs.add_argument("--group", default="technical_v1")
+    sub.add_parser("research-registry", help="PHASE 2: registered candidates and their review stage")
     sub.add_parser("scheduler", help="run the background scheduler (blocking)")
     a = sub.add_parser("api")
     a.add_argument("--port", type=int, default=8000)
@@ -187,6 +194,33 @@ def main(argv=None) -> None:
             with open(path, "w", encoding="utf-8") as fh:
                 json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
             out["saved_to"] = path
+    elif args.cmd == "factor-study":
+        from aqt.research import DISCLAIMER
+        from aqt.research import factors as fm
+        from aqt.research.engine import check_readiness
+        from aqt.research.records import code_fingerprint
+        cfg = fm.StudyConfig(args.start, args.end, horizon=args.horizon, markets=tuple(args.markets.split(",")),
+                             study_group=args.group)
+        with session_scope(engine) as s:
+            check_readiness(s)
+            results = fm.run_study(s, cfg)
+            ids = fm.save_studies(s, cfg, results, code_fingerprint()[:40])
+        mt = fm.multiple_testing(results)
+        out = {"study_ids": ids, "multiple_testing": mt, "disclaimer": DISCLAIMER, "factors": {
+            f: {**{k: v for k, v in r.items() if k != "per_date"},
+                "evidence_label": fm.evidence_label(r, mt["factors"].get(f, {}).get("holm_p"))}
+            for f, r in results.items()}}
+        rd = get_settings().report_dir
+        if rd:
+            os.makedirs(os.path.join(rd, "research"), exist_ok=True)
+            path = os.path.join(rd, "research", f"factor_study_{args.group}_h{args.horizon}_{args.markets.replace(',', '-')}.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
+            out = {"saved_to": path, "multiple_testing": mt, "study_ids": ids}
+    elif args.cmd == "research-registry":
+        from aqt.research.registry import registry_listing
+        with session_scope(engine) as s:
+            out = registry_listing(s)
     elif args.cmd == "integrity-check":
         from aqt.data.integrity import run_integrity_check
         out = run_integrity_check(engine, args.start, args.end, args.out)

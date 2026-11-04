@@ -12,11 +12,14 @@ and costs always apply to the real portfolio size. Only the final window values 
 from dataclasses import replace
 from datetime import datetime, timezone
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from aqt.research import DISCLAIMER
-from aqt.research.engine import BacktestConfig, BacktestResult, PortfolioState, run_backtest
+from aqt.models import MarketIndex
+from aqt.research.engine import BENCHMARKS, BacktestConfig, BacktestResult, PortfolioState, run_backtest
 from aqt.research.metrics import compute_metrics
+from aqt.research.regimes import load_regimes, regime_metrics
 from aqt.research.records import save_run
 from aqt.research.splits import chronological_split, trading_days, walk_forward_windows
 from aqt.research.strategies import make
@@ -39,6 +42,8 @@ def run_and_save(session: Session, code: str, params: dict, cfg: BacktestConfig,
 
 
 def _select(session, code, grid, cfg) -> tuple[dict, list]:
+    if len(grid) == 1:  # fixed parameters: nothing to select, no training run needed
+        return grid[0], []
     tried = []
     for params in grid:
         rid, res = run_and_save(session, code, params, cfg, "IN_SAMPLE", {"role": "parameter_search"})
@@ -52,6 +57,7 @@ def _select(session, code, grid, cfg) -> tuple[dict, list]:
 
 def out_of_sample(session: Session, code: str, grid: list[dict], base: BacktestConfig, train: float = 0.6,
                   validation: float = 0.2) -> dict:
+    base = replace(base, universe_cache={} if base.universe_cache is None else base.universe_cache)
     days = trading_days(session, base.start, base.end)
     split = chronological_split(days, train, validation)
     best, tried = _select(session, code, grid, replace(base, start=split["train"][0], end=split["train"][1]))
@@ -77,14 +83,28 @@ def _costs(fills: list) -> dict:
     return out
 
 
+def walk_forward_benchmark(session: Session, base: BacktestConfig, start, end) -> dict:
+    """Same benchmark rule as a single run: a curve only when the market scopes match."""
+    code, kind, scope = BENCHMARKS[base.dividend_mode]
+    if not base.benchmark_comparable():
+        return {"index": code, "kind": kind, "scope": list(scope), "comparable": False, "curve": []}
+    rows = session.execute(select(MarketIndex.trade_date, MarketIndex.close)
+                           .where(MarketIndex.index_code == code, MarketIndex.trade_date.between(start, end))
+                           .order_by(MarketIndex.trade_date)).all()
+    return {"index": code, "kind": kind, "scope": list(scope), "comparable": True,
+            "curve": [[str(d), float(c)] for d, c in rows if c is not None]}
+
+
 def walk_forward(session: Session, code: str, grid: list[dict], base: BacktestConfig, train_days: int,
                  test_days: int, step: int | None = None, anchored: bool = False) -> dict:
+    base = replace(base, universe_cache={} if base.universe_cache is None else base.universe_cache)
     days = trading_days(session, base.start, base.end)
     windows = walk_forward_windows(days, train_days, test_days, step, anchored)
     if not windows:
         raise ValueError("period too short for one walk-forward window")
     started = datetime.now(timezone.utc)
     curve, trades, fills, rejections, per_window, child_ids, rebalance_days = [], [], [], [], [], [], []
+    window_run_ids: list = []
     state: PortfolioState | None = None
     usable, reasons = True, []
     for i, w in enumerate(windows):
@@ -94,6 +114,7 @@ def walk_forward(session: Session, code: str, grid: list[dict], base: BacktestCo
         rid, res = run_and_save(session, code, best, cfg, "OUT_OF_SAMPLE",
                                 {"role": "walk_forward_test", "window": w.to_dict()}, initial_state=state)
         child_ids += [t["run_id"] for t in tried] + [rid]
+        window_run_ids.append(rid)
         start_eq = res.config["start_equity"]
         end_eq = res.equity_curve[-1][1] if res.equity_curve else start_eq
         curve += res.equity_curve
@@ -112,7 +133,8 @@ def walk_forward(session: Session, code: str, grid: list[dict], base: BacktestCo
                            "costs": _costs(res.fills), "results_hash": res.results_hash(),
                            "test_metrics": {k: res.metrics.get(k) for k in
                                             ("total_return", "sharpe", "max_drawdown", "trades", "win_rate")}})
-    metrics = compute_metrics(curve, trades, fills, base.initial_cash)
+    bench = walk_forward_benchmark(session, base, windows[0].test_start, windows[-1].test_end)
+    metrics = compute_metrics(curve, trades, fills, base.initial_cash, bench)
     metrics["dividend_mode"] = base.dividend_mode
     metrics["usable_for_evaluation"] = usable
     metrics["benchmark_comparable"] = base.benchmark_comparable()
@@ -121,13 +143,15 @@ def walk_forward(session: Session, code: str, grid: list[dict], base: BacktestCo
     summary = BacktestResult(config={**base.to_dict(), "start": str(windows[0].test_start),
                                      "end": str(windows[-1].test_end), "start_equity": base.initial_cash},
                              strategy={"code": code, "grid": grid}, equity_curve=curve, trades=trades,
-                             fills=fills, rejections=rejections, metrics=metrics, benchmark={}, evaluation=evaluation,
-                             rebalance_days=rebalance_days)
+                             fills=fills, rejections=rejections, metrics=metrics, benchmark=bench,
+                             evaluation=evaluation, rebalance_days=rebalance_days,
+                             regime_metrics=regime_metrics(curve, load_regimes(session, windows[-1].test_end)))
     strat = make(code, **grid[0])
     sid = None if not PERSIST else save_run(
         session, strat, summary, "WALK_FORWARD", started,
         {"role": "walk_forward_summary", "grid": grid, "windows": per_window, "child_run_ids": child_ids,
-         "train_days": train_days, "test_days": test_days, "anchored": anchored})
+         "train_days": train_days, "test_days": test_days, "anchored": anchored,
+         "window_run_ids": window_run_ids})
     return {"summary_run_id": sid, "windows": per_window, "oos_metrics": metrics, "evaluation": evaluation,
             "rebalance_days": rebalance_days,
             "costs_total": _costs(fills), "results_hash": summary.results_hash(), "disclaimer": DISCLAIMER}

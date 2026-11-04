@@ -5,7 +5,7 @@ from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Index, Integer, S
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from aqt.models.base import Base, TimestampMixin
+from aqt.models.base import Base, TimestampMixin, utcnow
 
 
 class Strategy(Base, TimestampMixin):
@@ -28,7 +28,8 @@ class StrategyVersion(Base, TimestampMixin):
     code_ref: Mapped[str | None] = mapped_column(String(80))  # git commit of the rule implementation
     change_reason: Mapped[str] = mapped_column(Text, nullable=False)
     stage: Mapped[str] = mapped_column(String(16), nullable=False, default="CANDIDATE")
-    # CANDIDATE -> BACKTESTED -> OOS_PASSED -> WF_PASSED -> PAPER -> ACTIVE ; or REJECTED / RETIRED
+    # process gates (research/promotion.py): CANDIDATE -> BACKTESTED -> OOS_REVIEWED -> WF_REVIEWED;
+    # or REJECTED / RETIRED. No stage means effective, profitable or tradable.
     promoted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (UniqueConstraint("strategy_id", "version", name="uq_strategy_version"),)
@@ -107,6 +108,26 @@ class BacktestRunInvalidation(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="NEEDS_RERUN")
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     __table_args__ = (Index("ix_backtest_invalidations_run", "backtest_run_id"),)
+
+
+class FactorStudy(Base):
+    """One factor's predictive-power study: append-only, with the data fingerprint it was computed on."""
+    __tablename__ = "factor_studies"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    study_group: Mapped[str] = mapped_column(String(64), nullable=False)  # one multiple-testing family
+    factor: Mapped[str] = mapped_column(String(48), nullable=False)
+    horizon_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    period_start: Mapped[date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[date] = mapped_column(Date, nullable=False)
+    config: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    result: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    data_version_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    data_manifest: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    code_ref: Mapped[str] = mapped_column(String(80), nullable=False)
+    results_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    disclaimer: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    __table_args__ = (Index("ix_factor_studies_group", "study_group", "factor", "horizon_days"),)
 
 
 class MarketRegime(Base):
