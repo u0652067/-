@@ -1,5 +1,5 @@
 
-=== [2026-11-05 15:07:09] S0 sandbox from commit 4acadfede58a6c708be3daf3afc94de2476e0736 ===
+=== [2026-11-05 16:37:06] S0 sandbox from commit f68864ef9f7d3f63b15d21df119c126267d20c9e ===
 aqtsb_pgdata
  Network aqtsb_default Creating 
  Network aqtsb_default Creating 
@@ -10,23 +10,12 @@ aqtsb_pgdata
  Container aqtsb-db-1 Starting 
  Container aqtsb-db-1 Started 
 
-=== [2026-11-05 15:07:26] R1 restore production copy ===
+=== [2026-11-05 16:37:23] R1 restore production copy ===
 0003
 
-=== [2026-11-05 15:10:51] R2 export research records for review package ===
-
-pg_restore: warning: errors ignored on restore: 10
-total 1744
-drwxr-xr-x 1 ak870 197121       0 Nov  5 15:10 .
-drwxr-xr-x 1 ak870 197121       0 Nov  5 15:07 ..
--rw-r--r-- 1 ak870 197121  221153 Nov  5 15:10 research_backtest_runs.json
--rw-r--r-- 1 ak870 197121 1556203 Nov  5 15:10 research_factor_studies.json
--rw-r--r-- 1 ak870 197121    1229 Nov  5 15:10 research_stage_changes.json
--rw-r--r-- 1 ak870 197121     769 Nov  5 15:10 research_strategy_versions.json
-
-=== [2026-11-05 15:10:54] R3 migrate the copy to 0005a ===
- Container aqtsb-api-run-88adff50ee65 Creating 
- Container aqtsb-api-run-88adff50ee65 Created 
+=== [2026-11-05 16:40:33] R3 migrate the copy to 0005a ===
+ Container aqtsb-api-run-afa6bacbe9bc Creating 
+ Container aqtsb-api-run-afa6bacbe9bc Created 
 INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
 INFO  [alembic.runtime.migration] Will assume transactional DDL.
 INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, PHASE 2: reproducible, append-only backtest records
@@ -35,20 +24,44 @@ INFO  [alembic.runtime.migration] Running upgrade 0005 -> 0005a, Append-only rec
 0005a
 job 2065 before: 2065 | RUNNING | 2026-11-02 22:15:00.198818+08 |  | {} | 
 
-=== [2026-11-05 15:11:00] R4 integrity to 2026-11-04 before reconciliation ===
+=== [2026-11-05 16:40:40] R4 integrity to 2026-11-04 before reconciliation ===
 exit 0
 {"technical_backtest_ready": false, "fundamental_backtest_ready": false, "technical_ready_through": "2026-11-01", "gaps": ["1 daily_update days FAILED/PARTIAL (re-runnable)"], "rerunnable": [{"day": "2026-11-02", "status": "RUNNING", "job_run_id": 2065, "why": ""}], "reconciled": []}
 
-=== [2026-11-05 15:11:05] R5 backtest ending before and after the problem day ===
+=== [2026-11-05 16:40:46] R5 backtest ending before and after the problem day ===
   "run_id": 1,
 exit 0
 aqt.research.engine.DataNotReady: data not ready for technical backtests: technical_backtest_ready=False, coverage_complete=False, technical_ready_through='2026-11-01'
 exit 1
 
-=== [2026-11-05 15:11:10] R6 verify and record ===
+=== [2026-11-05 16:40:52] R6 verify and record ===
 {
   "job_run_id": 2065,
   "data_date": "2026-11-02",
+  "written_scope": {
+    "payload_ids": [
+      15730,
+      15731,
+      15732,
+      15733,
+      15734,
+      15735,
+      15736,
+      15737,
+      15738
+    ],
+    "rows_by_table": {
+      "corporate_actions": 1,
+      "daily_prices": 2407,
+      "financial_statements": 0,
+      "institutional_trades": 2227,
+      "margin_trades": 2224,
+      "market_indices": 267,
+      "monthly_revenues": 0,
+      "trading_restrictions": 0,
+      "valuations": 1980
+    }
+  },
   "checks": {
     "every_dataset_matches_its_payload": true,
     "earlier_success_on_the_same_day": true,
@@ -61,27 +74,26 @@ exit 1
 {
   "id": 1,
   "outcome": "DATA_COMPLETE",
-  "evidence_sha256": "906a0408b5cede8fbaf39a7be095d8114de30e0c4b03d222a89fc59287ce07c4"
+  "evidence_sha256": "106e7506d7633e0377a0cdccf6b259af872010eb331f8ff08cc331f23863f2bb"
 }
-1 | 2065 | DATA_COMPLETE | Claude, on request of pudding | 2026-11-05 15:11:14.218581+08 | 906a0408b5cede8fbaf39a7be095d8114de30e0c4b03d222a89fc59287ce07c4 | Scheduler container was replaced by a start.ps1 deployment at 2026-11-02 22:15:3
+1 | 2065 | DATA_COMPLETE | Claude, on request of pudding | 2026-11-05 16:40:57.808183+08 | 106e7506d7633e0377a0cdccf6b259af872010eb331f8ff08cc331f23863f2bb | Scheduler container was replaced by a start.ps1 deployment at 2026-11-02 22:15:3
 job 2065 after: 2065 | RUNNING | 2026-11-02 22:15:00.198818+08 |  | {} | 
 
-=== [2026-11-05 15:11:15] R7 integrity to 2026-11-04 after reconciliation ===
+=== [2026-11-05 16:40:59] R7 integrity to 2026-11-04 after reconciliation ===
 exit 0
-{"technical_backtest_ready": true, "fundamental_backtest_ready": false, "technical_ready_through": "2026-11-04", "gaps": [], "rerunnable": [], "reconciled": [{"day": "2026-11-02", "status": "RUNNING", "job_run_id": 2065, "why": "", "outcome": "DATA_COMPLETE", "reconciliation_id": 1, "executed_by": "Claude, on request of pudding", "reconciled_at": "2026-11-05 15:11:14.218581+08"}]}
+{"technical_backtest_ready": true, "fundamental_backtest_ready": false, "technical_ready_through": "2026-11-04", "gaps": [], "rerunnable": [], "reconciled": [{"day": "2026-11-02", "status": "RUNNING", "job_run_id": 2065, "why": "", "outcome": "DATA_COMPLETE", "reconciliation_id": 1, "executed_by": "Claude, on request of pudding", "reconciled_at": "2026-11-05 16:40:57.808183+08"}]}
 
-=== [2026-11-05 15:11:20] R8 append-only ===
+=== [2026-11-05 16:41:05] R8 append-only ===
 ERROR:  table job_reconciliations is append-only: UPDATE is not allowed
 CONTEXT:  PL/pgSQL function aqt_forbid_change() line 3 at RAISE
 ERROR:  table job_reconciliations is append-only: DELETE is not allowed
 CONTEXT:  PL/pgSQL function aqt_forbid_change() line 3 at RAISE
 
-=== [2026-11-05 15:11:21] R9 rollback-check counts it ===
+=== [2026-11-05 16:41:05] R9 rollback-check counts it ===
     "job_reconciliations": 1
   "downgrade_allowed": false,
-cp: target '/e/'$'\350\207\252\346\210\221\346\210\220\351\225\267\350\202\241\347\245\250\345\210\206\346\236\220''/evidence/2026-11-05_phase2_research/' is not a directory
 
-=== [2026-11-05 15:11:23] Z cleanup ===
+=== [2026-11-05 16:41:07] Z cleanup ===
  Container aqtsb-db-1 Stopping 
  Container aqtsb-db-1 Stopped 
  Container aqtsb-db-1 Removing 
@@ -90,7 +102,7 @@ cp: target '/e/'$'\350\207\252\346\210\221\346\210\220\351\225\267\350\202\241\3
  Network aqtsb_default Removed 
 aqtsb_pgdata
 
-=== [2026-11-05 15:11:25] production after ===
+=== [2026-11-05 16:41:09] production after ===
 /aqt-api-1 sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 2026-11-04T13:07:30.052277428Z 0
 /aqt-scheduler-1 sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 2026-11-04T13:07:30.062965006Z 0
 0003

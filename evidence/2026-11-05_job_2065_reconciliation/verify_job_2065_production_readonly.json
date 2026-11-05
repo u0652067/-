@@ -1,10 +1,35 @@
 {
+ "method": "Read-only transaction. For each of the 8 daily datasets: take the payload this job stored, check its sha256, parse it with the production parser and compare every record field with the stored row. Report rows in the payload but not stored, stored but not in the payload, and duplicates on either side. List what the job wrote by raw_payload_id, then check indicators, quality issues and later runs. Reproduce: python -m aqt.cli reconcile-job --job-id <id> --out <file>",
+ "written_scope": {
+  "payload_ids": [
+   15730,
+   15731,
+   15732,
+   15733,
+   15734,
+   15735,
+   15736,
+   15737,
+   15738
+  ],
+  "rows_by_table": {
+   "corporate_actions": 1,
+   "daily_prices": 2407,
+   "financial_statements": 0,
+   "institutional_trades": 2227,
+   "margin_trades": 2224,
+   "market_indices": 267,
+   "monthly_revenues": 0,
+   "trading_restrictions": 0,
+   "valuations": 1980
+  }
+ },
  "job_run_id": 2065,
  "job_status_in_job_runs": "RUNNING",
  "job_result_in_job_runs": {},
  "data_date": "2026-11-02",
  "started_at": "2026-11-02 22:15:00.198818+08:00",
- "verified_at": "2026-11-05 07:06:10.187253+00:00",
+ "verified_at": "2026-11-05 08:36:57.615037+00:00",
  "same_day_jobs": [
   {
    "id": 2063,
@@ -34,7 +59,11 @@
    "stored_rows": 1389,
    "stored_rows_from_this_payload": 1389,
    "value_mismatches": 0,
-   "mismatch_sample": []
+   "mismatch_sample": [],
+   "payload_duplicate_records": 0,
+   "stored_duplicate_rows": 0,
+   "in_payload_not_stored": [],
+   "stored_not_in_payload": []
   },
   {
    "dataset": "tpex_quotes",
@@ -50,7 +79,11 @@
    "stored_rows": 1018,
    "stored_rows_from_this_payload": 1018,
    "value_mismatches": 0,
-   "mismatch_sample": []
+   "mismatch_sample": [],
+   "payload_duplicate_records": 0,
+   "stored_duplicate_rows": 0,
+   "in_payload_not_stored": [],
+   "stored_not_in_payload": []
   },
   {
    "dataset": "twse_institutional",
@@ -66,7 +99,11 @@
    "stored_rows": 1343,
    "stored_rows_from_this_payload": 1343,
    "value_mismatches": 0,
-   "mismatch_sample": []
+   "mismatch_sample": [],
+   "payload_duplicate_records": 0,
+   "stored_duplicate_rows": 0,
+   "in_payload_not_stored": [],
+   "stored_not_in_payload": []
   },
   {
    "dataset": "tpex_institutional",
@@ -82,7 +119,11 @@
    "stored_rows": 884,
    "stored_rows_from_this_payload": 884,
    "value_mismatches": 0,
-   "mismatch_sample": []
+   "mismatch_sample": [],
+   "payload_duplicate_records": 0,
+   "stored_duplicate_rows": 0,
+   "in_payload_not_stored": [],
+   "stored_not_in_payload": []
   },
   {
    "dataset": "twse_margin",
@@ -98,7 +139,11 @@
    "stored_rows": 1305,
    "stored_rows_from_this_payload": 1305,
    "value_mismatches": 0,
-   "mismatch_sample": []
+   "mismatch_sample": [],
+   "payload_duplicate_records": 0,
+   "stored_duplicate_rows": 0,
+   "in_payload_not_stored": [],
+   "stored_not_in_payload": []
   },
   {
    "dataset": "tpex_margin",
@@ -114,7 +159,11 @@
    "stored_rows": 919,
    "stored_rows_from_this_payload": 919,
    "value_mismatches": 0,
-   "mismatch_sample": []
+   "mismatch_sample": [],
+   "payload_duplicate_records": 0,
+   "stored_duplicate_rows": 0,
+   "in_payload_not_stored": [],
+   "stored_not_in_payload": []
   },
   {
    "dataset": "twse_valuation",
@@ -130,7 +179,11 @@
    "stored_rows": 1088,
    "stored_rows_from_this_payload": 1088,
    "value_mismatches": 0,
-   "mismatch_sample": []
+   "mismatch_sample": [],
+   "payload_duplicate_records": 0,
+   "stored_duplicate_rows": 0,
+   "in_payload_not_stored": [],
+   "stored_not_in_payload": []
   },
   {
    "dataset": "tpex_valuation",
@@ -146,7 +199,11 @@
    "stored_rows": 892,
    "stored_rows_from_this_payload": 892,
    "value_mismatches": 0,
-   "mismatch_sample": []
+   "mismatch_sample": [],
+   "payload_duplicate_records": 0,
+   "stored_duplicate_rows": 0,
+   "in_payload_not_stored": [],
+   "stored_not_in_payload": []
   }
  ],
  "downstream": {
@@ -155,6 +212,7 @@
   "indicators_computed_at": "2026-11-02 17:45:43.433746+08:00",
   "quality_issues": 10,
   "quality_issues_unclassified": 0,
+  "quality_issue_duplicates": 5,
   "next_trading_day_success": 4
  },
  "checks": {
