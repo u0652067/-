@@ -151,11 +151,16 @@ downgrade 不刪回測紀錄列，但留下的列已無法重現、無法驗證�
 
    **查核結果**（PR #9 的 `reconcile-job`，對正式庫唯讀執行，`evidence/2026-11-05_job_2065_reconciliation/verify_job_2065_production_readonly.json`）：
    - 工作自己的 8 份原始回應都在，HTTP 200、sha256 相符、解析 OK。
-   - 8 組資料逐列比對，共 9,840 列：回應筆數 = 資料庫筆數 = 來自這份回應的列數，數值差異 0。
+   - 8 組資料逐列比對，共 8,838 列（先前寫的 9,840 是我算錯，已更正）：回應筆數 = 資料庫筆數 = 來自這份回應的列數，數值差異 0。
+   - **遺漏**：回應有而資料庫沒有 0 列，資料庫有而回應沒有 0 列。**重複**：回應內 0、資料列 0。
+   - **實際寫入範圍**（依 `raw_payload_id`）：行情 2,407、法人 2,227、融資券 2,224、估值 1,980、指數 267、公司事件 1；以及 22:15:37 的品質問題 5 筆。沒有新增 securities。
+   - **一個已知的重複**：這 5 筆品質問題與 17:45 那 5 筆內容相同，同一天有 10 筆。這不是這次中斷造成的，而是 `save_issues` 每次重跑都新增。全庫共 5,837 筆，不重複 5,774 筆。它們是 `NO_CLOSE_FIXED_PRICE_ONLY`，不阻擋回測。稽核表只能新增，所以不刪除。
    - 融資券在 17:45 還是空的，由這次工作寫入：上市 1,305、上櫃 919 列。法人也是這次的修訂版。
    - 行情與本益比回應與 17:45 成功工作完全相同，所以 17:45 算出的 2,353 筆技術指標仍然正確。
    - 品質問題 10 筆，未分類 0。工作在寫完品質問題後被中斷，沒執行到的只有重算指標、股票池與安全模式檢查；前兩者輸入沒變，隔日工作已成功。
    - 結論：`DATA_COMPLETE`。
+
+   **可重現**：`python -m aqt.cli reconcile-job --job-id 2065 --out <檔案>`，唯讀交易，可在任何 schema 執行。證據內含查核方法。
 
    **處理方式**（PR #9，待審）：
    - 不修改 `job_runs`，第 2065 列永遠維持 RUNNING。
@@ -164,7 +169,9 @@ downgrade 不刪回測紀錄列，但留下的列已無法重現、無法驗證�
 
    **沙箱驗證**（完整複本，`sandbox_reconcile_log.txt`）：紀錄前 `technical_ready_through=2026-11-01`，結束於 10-30 的回測可跑，結束於 11-03 的回測被拒絕。紀錄後 `technical_backtest_ready=true`，`job_runs` 第 2065 列完全不變，UPDATE、DELETE 都被觸發器拒絕。
 
-   **尚未完成**：`0005a` 需要 migration，你尚未授權，所以**正式庫還沒有這筆稽核事件**，正式庫的 `job_runs` 與 readiness 也都沒有動。核准 PR #9 與 migration 後，用以下指令寫入，寫入時會重新驗證一次：
+   **目前的 append-only 紀錄**：你禁止套用 migration，所以正式庫不能建 `job_reconciliations`。在這之前，紀錄保存在 git 內只能新增、以雜湊串接的 `evidence/2026-11-05_job_2065_reconciliation/reconciliation_ledger.jsonl`，含原因、方法、結果、時間與操作者。這是資料庫外的暫行紀錄，不會讓 `integrity-check` 放行。
+
+   **尚未完成**：正式庫還沒有這筆稽核事件，`job_runs` 與 readiness 也都沒有動，所以截止日含 11-02 以後的檢查在正式庫仍是未就緒，符合「未核對完成維持不可用」。核准 PR #9 與 migration 後，用以下指令寫入，寫入時會重新驗證一次：
    ```powershell
    docker compose run --rm --no-deps api python -m aqt.cli reconcile-job --job-id 2065 --record --reason "<理由>" --by "<執行者>"
    ```
