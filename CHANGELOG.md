@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [0.3.4] — 2026-11-05 — 殘留工作對帳與 readiness 截止日修正（分支 `claude/job-reconciliation`，待審）
+- 新增 `job_reconciliations`（migration 0005a，只能新增，尚未套用到正式庫）與 `reconcile-job`。不修改 `job_runs`。
+- `integrity-check` 只有在該工作有 `DATA_COMPLETE` 紀錄時才放行。
+- 新增 `technical_ready_through`；回測依結束日判斷資格，結束日晚於已檢查視窗時拒絕。
+- 正式庫唯讀查核：job 2065 的 8 組資料、9,840 列與原始回應完全相符，結論 DATA_COMPLETE。殘留原因是 2026-11-02 22:15:34 的 `start.ps1` 部署，更正先前的 Docker Desktop 說法。
+- 測試 163 passed。
+
 ## [0.3.3] — 2026-11-05 — 部署安全修正（分支 `claude/deploy-safety`，待審）
 - PR #6 已合併，main `cbd07ba`。正式庫維持 0003，正式容器未重啟或重建。
 - migration 只能經 `scripts\migrate.ps1`：需要 `-IHaveApproval` 與通過驗證的備份；`migrate` 服務移到 profile；`init-db` 需 `--apply-migrations`。

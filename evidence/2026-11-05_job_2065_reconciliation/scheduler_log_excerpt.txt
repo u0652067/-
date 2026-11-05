@@ -1,0 +1,26 @@
+2026-11-02 21:45:00,009 INFO apscheduler.executors.default Job "job_heartbeat (trigger: cron[minute='*/15'], next run at: 2026-11-02 22:00:0
+2026-11-02 22:00:00,000 INFO apscheduler.executors.default Running job "job_heartbeat (trigger: cron[minute='*/15'], next run at: 2026-11-02
+2026-11-02 22:00:00,002 INFO aqt [scheduler] heartbeat
+2026-11-02 22:00:00,010 INFO apscheduler.executors.default Job "job_heartbeat (trigger: cron[minute='*/15'], next run at: 2026-11-02 22:15:0
+2026-11-02 22:15:00,007 INFO apscheduler.executors.default Running job "job_heartbeat (trigger: cron[minute='*/15'], next run at: 2026-11-02
+2026-11-02 22:15:00,010 INFO apscheduler.executors.default Running job "job_late_datasets (trigger: cron[day_of_week='mon-fri', hour='22', m
+2026-11-02 22:15:00,011 INFO aqt [scheduler] heartbeat
+2026-11-02 22:15:00,086 INFO apscheduler.executors.default Job "job_heartbeat (trigger: cron[minute='*/15'], next run at: 2026-11-02 22:30:0
+2026-11-02 22:15:50,704 INFO aqt [scheduler] scheduler starting; running catch-up
+2026-11-02 22:15:50,766 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-11-02 22:15:50,767 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-11-02 22:15:50,767 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-11-02 22:15:50,768 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-11-02 22:15:50,770 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-11-02 22:15:50,771 INFO apscheduler.scheduler Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-11-02 22:15:50,771 INFO apscheduler.scheduler Added job "job_securities" to job store "default"
+2026-11-02 22:15:50,773 INFO apscheduler.scheduler Added job "job_daily_eod" to job store "default"
+2026-11-02 22:15:50,774 INFO apscheduler.scheduler Added job "job_late_datasets" to job store "default"
+2026-11-02 22:15:50,774 INFO apscheduler.scheduler Added job "job_fundamentals" to job store "default"
+2026-11-02 22:15:50,775 INFO apscheduler.scheduler Added job "job_calendar" to job store "default"
+2026-11-02 22:15:50,776 INFO apscheduler.scheduler Added job "job_heartbeat" to job store "default"
+2026-11-02 22:15:50,776 INFO apscheduler.scheduler Scheduler started
+2026-11-02 22:30:00,001 INFO apscheduler.executors.default Running job "job_heartbeat (trigger: cron[minute='*/15'], next run at: 2026-11-02
+2026-11-02 22:30:00,002 INFO aqt [scheduler] heartbeat
+2026-11-02 22:30:00,011 INFO apscheduler.executors.default Job "job_heartbeat (trigger: cron[minute='*/15'], next run at: 2026-11-02 22:45:0
+2026-11-02 22:45:00,000 INFO apscheduler.executors.default Running job "job_heartbeat (trigger: cron[minute='*/15'], next run at: 2026-11-02
