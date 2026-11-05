@@ -1,5 +1,6 @@
 # Consistent PostgreSQL backup (pg_dump custom format) into .\backups, plus sha256 and row-count manifest.
-#   -Verify   restore the dump into a scratch database and compare row counts with the live database
+#   -Verify   restore the dump into a scratch database and compare the row count of EVERY table with the live one.
+#             Before a migration stop api and scheduler first: a write during the backup fails the comparison.
 param([switch]$Verify, [string]$Label = '')
 . "$PSScriptRoot\_common.ps1"
 Assert-Docker
@@ -9,9 +10,8 @@ $ts = Get-Date -Format 'yyyyMMdd_HHmmss'
 $name = "aqt_$ts$(if ($Label) { '_' + $Label }).dump"
 
 function Get-Counts([string]$db) {
-    $tables = 'securities','daily_prices','raw_payloads','institutional_trades','margin_trades','valuations',
-              'monthly_revenues','corporate_actions','technical_indicators','market_indices','job_runs','trading_calendar'
-    $sql = ($tables | ForEach-Object { "SELECT '$_' t, count(*) n FROM $_" }) -join ' UNION ALL '
+    # every table of the public schema, so a new table can never be left out
+    $sql = "SELECT table_name, (xpath('/row/c/text()', query_to_xml(format('select count(*) c from %I', table_name), false, true, '')))[1]::text::bigint FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ORDER BY 1"
     $out = docker compose exec -T db psql -U $user -d $db -At -F '=' -c $sql
     if ($LASTEXITCODE -ne 0) { throw "row count on $db failed" }
     $h = [ordered]@{}; foreach ($l in $out) { $k, $v = $l -split '='; $h[$k] = [int64]$v }; return $h
@@ -35,6 +35,7 @@ if ($Verify) {
     $restored = Get-Counts 'aqt_verify'
     Invoke-Compose exec -T db dropdb -U $user aqt_verify
     $diff = @($live.Keys | Where-Object { $live[$_] -ne $restored[$_] })
+    if ($restored.Count -ne $live.Count) { $diff += 'table list' }
     $manifest.verified_restore = [ordered]@{ ok = ($diff.Count -eq 0); restored_counts = $restored; differs = $diff }
     if ($diff.Count) { Write-Warning "Row counts differ after restore (live db may have changed meanwhile): $($diff -join ', ')" }
     else { Write-Host "Restore verified: row counts identical." }

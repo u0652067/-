@@ -1,4 +1,5 @@
 """Read-only data-center API (PHASE 1). Trading / settings endpoints arrive in PHASE 3/5."""
+import os
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -11,6 +12,7 @@ from aqt.models import (
     DailyPrice, DataQualityIssue, DataSourceStatus, InstitutionalTrade, JobRun, MarketIndex,
     MonthlyRevenue, Notification, Security, SystemState, TechnicalIndicator,
 )
+from aqt.schema_guard import schema_status
 
 app = FastAPI(title="AI Quant Trader — Taiwan (SIMULATION ONLY)", version="0.1.0")
 
@@ -47,6 +49,8 @@ def health(s: Session = Depends(db)):
                        ).total_seconds() / 3600
     return {
         "status": "ok", "trading_mode": get_settings().trading_mode,
+        "build_commit": os.environ.get("AQT_BUILD_COMMIT", "unknown"),
+        "schema": schema_status(s.get_bind()),
         "safe_mode": safe.value if safe else {"on": False},
         # never a single "backtest_ready": technical and fundamental readiness are separate (integrity-check)
         "data_readiness": readiness.value if readiness else {

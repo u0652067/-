@@ -38,6 +38,46 @@ function Invoke-Cli {
     if ($LASTEXITCODE -ne 0) { throw "aqt.cli $($args -join ' ') failed (exit $LASTEXITCODE)" }
 }
 
+function Get-ImageRevision([string]$Image) {
+    # JSON, because PowerShell 5.1 strips the inner quotes of a format string naming the label
+    $labels = & docker image inspect $Image --format '{{json .Config.Labels}}'
+    if ($LASTEXITCODE -ne 0) { return $null }
+    return ($labels | ConvertFrom-Json).'org.opencontainers.image.revision'
+}
+
+function Assert-ReleaseImage {
+    # AQT_IMAGE must be an immutable tag of a commit on main, and the image must say the same commit
+    $image = Get-EnvValue 'AQT_IMAGE'
+    if ($image -notmatch '^aqt-backend:main-([0-9a-f]{12})$') {
+        throw "AQT_IMAGE='$image' is not an immutable release tag (aqt-backend:main-<12 hex>). Build one with scripts\build-release.ps1 and put it in .env."
+    }
+    $short = $Matches[1]
+    $rev = Get-ImageRevision $image
+    if ($null -eq $rev) { throw "Image $image does not exist on this machine or has no revision label. Build it with scripts\build-release.ps1." }
+    if (-not $rev.StartsWith($short)) { throw "Image $image is labelled with commit $rev, not ${short}: refusing it." }
+    return $image
+}
+
+function Get-SchemaState {
+    # Asks the database and the image directly, so it also works with release images older than schema-status.
+    $user = Get-EnvValue 'POSTGRES_USER' 'aqt'
+    $db = (& docker compose exec -T db psql -U $user -d aqt -At -c 'SELECT version_num FROM alembic_version')
+    if ($LASTEXITCODE -ne 0) { throw "Could not read alembic_version from the database" }
+    $image = Get-EnvValue 'AQT_IMAGE'
+    $heads = & docker run --rm $image python -m alembic heads
+    if ($LASTEXITCODE -ne 0) { throw "Could not read the migration head of $image" }
+    $head = (($heads | Select-Object -Last 1) -split ' ')[0]
+    return [pscustomobject]@{ Database = "$db".Trim(); Image = $image; ImageHead = $head; Match = ("$db".Trim() -eq $head) }
+}
+
+function Wait-Db {
+    for ($i = 0; $i -lt 60; $i++) {
+        if ((Test-Native docker compose exec -T db pg_isready -U (Get-EnvValue 'POSTGRES_USER' 'aqt') -d aqt) -eq 0) { return }
+        Start-Sleep -Seconds 2
+    }
+    throw "PostgreSQL did not become ready"
+}
+
 function New-DataDirs {
     foreach ($d in 'data\raw', 'data\logs', 'data\reports', 'backups') {
         New-Item -ItemType Directory -Force (Join-Path $Root $d) | Out-Null

@@ -1,6 +1,17 @@
 # TASKS（進度追蹤 — 每次收工更新）
 
-最後更新：2026-11-03｜目前階段：**PHASE 1 條件式驗收候選＋缺口修正 PR 待審（未進入 PHASE 2）**｜測試：124 passed（PHASE 2 分支，本機 Docker）
+最後更新：2026-11-05｜目前階段：**PHASE 2 回測骨架已合併 main；部署安全修正 PR 待審；正式庫維持 0003，migration 未授權**｜測試：153 passed（本機 Docker）
+
+## 部署安全修正（`claude/deploy-safety`，待審）
+- [x] migration 不再由 start、compose up、重開機或服務重啟執行；版本不符時拒絕（`schema_guard.py`、`migrate.ps1`）
+- [x] 正式映像不可變：`aqt-backend:main-<commit>`（`build-release.ps1`），compose 正式服務無 `build:`
+- [x] 回復政策：有紀錄後只能從備份還原；`rollback-check` 把關；文件列出 downgrade 會遺失的稽核資料
+- [x] 全部資料表筆數與內容比對（`table-audit`、`table-compare`、`backup.ps1 -Verify`）
+- [x] 隔離沙箱演練：完整複本，migration、API、scheduler、補抓用 main `cbd07ba` 映像；防護與回復用 PR 映像（`evidence/2026-11-05_deploy_safety_rehearsal/`）
+- [ ] 使用者審查並合併本 PR
+- [ ] 合併後建立含防護的 main 映像，於沙箱重跑防護步驟
+- [ ] 使用者授權後才套用 0004／0005（`evidence/MIGRATION_PLAN_0004_0005.md`）
+- [ ] 重跑 2026-11-02 的 `update-daily`，清掉殘留的 RUNNING 工作紀錄（未授權前不動正式庫）
 
 ## PHASE 1 條件式驗收 — 狀態說明
 「條件式」= 程式與部署流程完成、真實來源在本機（台灣家用 IP）驗證可用，但下列資料缺口尚未補齊或尚無官方來源。缺口補齊並經使用者驗收前，**不得進入 PHASE 2**。
@@ -109,7 +120,7 @@
 - [x] 2026-11-04 第二輪審查修正（4 項）：known_at 明確化、品質問題 effective_at＋NEEDS_RERUN、再平衡排程跨視窗、基準市場範圍
 - [ ] 阻擋中的品質問題改判為不阻擋時，歷史股票池會跟著解除（目前只標 NEEDS_RERUN，未保留解除時間）
 - [ ] 驗證可用的全市場總報酬基準（例如寶島股價報酬指數的涵蓋範圍）
-- [ ] migration 0004、0005 尚未套用到正式資料庫（待使用者驗收 PHASE 2）
+- [ ] migration 0004、0005 尚未套用到正式資料庫（等部署安全修正 PR 與使用者授權）
 - [ ] G9 官方下市事件（目前：無法交易持股凍結並標示不可用）
 
 ## PHASE 3–7 ⏳

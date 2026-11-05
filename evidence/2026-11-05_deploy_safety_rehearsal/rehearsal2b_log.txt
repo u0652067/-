@@ -1,0 +1,639 @@
+
+=== [2026-11-05 01:02:51] R0 production state before ===
+/aqt-api-1 image=sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 started=2026-11-04T13:07:30.052277428Z restarts=0
+/aqt-scheduler-1 image=sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 started=2026-11-04T13:07:30.062965006Z restarts=0
+/aqt-db-1 image=sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a started=2026-11-04T13:07:30.066915011Z restarts=0
+0003
+
+=== [2026-11-05 01:02:51] S0 build sandbox from commit 882e318eec034b7cfb49af78971a8da261ae3ea5 ===
+sandbox differs from the PR only in: project name, volume name, ports, and accepting the pr- tag
+aqtsb_pgdata
+ Network aqtsb_default Creating 
+ Network aqtsb_default Creating 
+ Network aqtsb_default Created 
+ Network aqtsb_default Created 
+ Container aqtsb-db-1 Creating 
+ Container aqtsb-db-1 Created 
+ Container aqtsb-db-1 Starting 
+ Container aqtsb-db-1 Started 
+
+=== [2026-11-05 01:03:09] A1 restore ===
+
+real	2m54.541s
+user	0m0.045s
+sys	0m0.015s
+sandbox alembic_version: 0003
+
+=== [2026-11-05 01:06:04] A2 every table: restored copy vs production audit ===
+ Container aqtsb-api-run-14243da3b2f4 Creating 
+ Container aqtsb-api-run-14243da3b2f4 Created 
+2026-11-05 01:06:08,393 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:06:08,394 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:06:08,394 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:06:08,395 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:06:08,395 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:06:08,396 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:06:08,396 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+audit_T0.json 42 tables 19449258 rows
+ Container aqtsb-api-run-60d83e8b8f86 Creating 
+ Container aqtsb-api-run-60d83e8b8f86 Created 
+{
+  "tables_compared": 42,
+  "rows_compared": 19449259,
+  "problems": [
+    "system_logs: rows 252 -> 251"
+  ],
+  "identical": false,
+  "new_tables": []
+}
+
+-> compare exit 1
+
+=== [2026-11-05 01:06:18] A3 upgrade with main image and read the integrity verdict ===
+ Container aqtsb-api-run-4a809ba8cb19 Creating 
+ Container aqtsb-api-run-4a809ba8cb19 Created 
+2026-11-05 01:06:19,061 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:06:19,061 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:06:19,062 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:06:19,063 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:06:19,063 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:06:19,064 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:06:19,064 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, PHASE 2: reproducible, append-only backtest records
+INFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, Point-in-time audit of data-quality exclusions; flags for backtests affected by later discoveries
+sandbox alembic_version: 0005
+latest trade date 2026-11-04
+ Container aqtsb-api-run-4c121c803666 Creating 
+ Container aqtsb-api-run-4c121c803666 Created 
+exit 0
+window 2019-01-01..2026-11-04
+verdict {"coverage": {"complete": false, "gaps": ["1 daily_update days FAILED/PARTIAL (re-runnable)"]}, "quality": {"status": "REVIEWED_WITH_EXCLUSIONS", "errors": 4880, "unclassified": 0, "blocking_backtest": 554, "notes": ["4880 ERROR issues (the security-day is excluded from the universe)", "554 issues block the security from backtests for tradability.QUALITY_BLOCK_DAYS calendar days", "618 financial statements without reliable publication time (never returned by fundamentals.latest_statements_as_of)"]}, "technical_backtest_ready": false, "fundamental_backtest_ready": false, "fundamental_not_ready_reason": "618 financial statements lack a verified publication time"}
+ Container aqtsb-api-run-1328cb598d10 Creating 
+ Container aqtsb-api-run-1328cb598d10 Created 
+exit 0
+window 2019-01-01..2026-11-03
+verdict {"coverage": {"complete": false, "gaps": ["1 daily_update days FAILED/PARTIAL (re-runnable)"]}, "quality": {"status": "REVIEWED_WITH_EXCLUSIONS", "errors": 4880, "unclassified": 0, "blocking_backtest": 554, "notes": ["4880 ERROR issues (the security-day is excluded from the universe)", "554 issues block the security from backtests for tradability.QUALITY_BLOCK_DAYS calendar days", "618 financial statements without reliable publication time (never returned by fundamentals.latest_statements_as_of)"]}, "technical_backtest_ready": false, "fundamental_backtest_ready": false, "fundamental_not_ready_reason": "618 financial statements lack a verified publication time"}
+
+=== [2026-11-05 01:06:33] B1 restore.ps1 with the guarded PR image aqt-backend:pr-882e318eec03: restores 0003, refuses to start services ===
+sandbox AQT_IMAGE=aqt-backend:pr-882e318eec03
+db
+scheduler
+api
+sha256 verified.
+Stopping app containers...
+Restored aqt_20261105_002745_pre_rehearsal2.dump. Database schema: 0003; aqt-backend:pr-882e318eec03 expects: 0005
+Restored, but AQT_IMAGE does not match the restored schema: api and scheduler stay stopped and nothing was migrated. Se
+t AQT_IMAGE to the release of schema 0003 (scripts\build-release.ps1 -Commit <commit>), then run scripts\start.ps1.
+¦ì©ó E:\aqt-sandbox\scripts\restore.ps1:31 ¦r¤¸:5
++     throw "Restored, but AQT_IMAGE does not match the restored schema ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Restored, but A...ipts\start.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Restored, but AQT_IMAGE does not match the restored schema: api and scheduler stay stopp 
+   ed and nothing was migrated. Set AQT_IMAGE to the release of schema 0003 (scripts\build-release.ps1 -Commit <commi  
+  t>), then run scripts\start.ps1.
+ 
+-> exit code 1
+-> REFUSED
+sandbox alembic_version: 0003
+db Up 6 minutes (healthy)
+
+=== [2026-11-05 01:09:35] B2 start.ps1 must refuse on mismatch ===
+Release image: aqt-backend:pr-882e318eec03
+ Container aqtsb-db-1 Running 
+Database schema: 0003; image expects: 0005
+Refused: database schema 0003 does not match aqt-backend:pr-882e318eec03 (expects 0005). No service was started or chan
+ged and nothing was migrated. Set AQT_IMAGE to the release of this schema, or run the approved migration with scripts\m
+igrate.ps1.
+¦ì©ó E:\aqt-sandbox\scripts\start.ps1:25 ¦r¤¸:5
++     throw "Refused: database schema $($st.Database) does not match $i ...
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Refused: databa...ts\migrate.ps1.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Refused: database schema 0003 does not match aqt-backend:pr-882e318eec03 (expects 0005). 
+    No service was started or changed and nothing was migrated. Set AQT_IMAGE to the release of this schema, or run t  
+  he approved migration with scripts\migrate.ps1.
+ 
+-> exit code 1
+-> REFUSED
+sandbox alembic_version: 0003
+db Up 6 minutes (healthy)
+
+=== [2026-11-05 01:09:39] B3 plain docker compose up: services must refuse, schema must not change ===
+ Container aqtsb-db-1 Running 
+ Container aqtsb-scheduler-1 Creating 
+ Container aqtsb-api-1 Creating 
+ Container aqtsb-scheduler-1 Created 
+ Container aqtsb-api-1 Created 
+ Container aqtsb-db-1 Waiting 
+ Container aqtsb-db-1 Waiting 
+ Container aqtsb-db-1 Healthy 
+ Container aqtsb-db-1 Healthy 
+ Container aqtsb-api-1 Starting 
+ Container aqtsb-scheduler-1 Starting 
+ Container aqtsb-api-1 Started 
+ Container aqtsb-scheduler-1 Started 
+scheduler-1  | 2026-11-05 01:09:59,563 ERROR aqt database schema is 0003 but this build (commit 882e318eec034b7cfb49af78971a8da261ae3ea5) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+scheduler-1  | database schema is 0003 but this build (commit 882e318eec034b7cfb49af78971a8da261ae3ea5) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+api-1        | 2026-11-05 01:10:00,171 ERROR aqt database schema is 0003 but this build (commit 882e318eec034b7cfb49af78971a8da261ae3ea5) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+api-1        | database schema is 0003 but this build (commit 882e318eec034b7cfb49af78971a8da261ae3ea5) expects 0005. Nothing was changed. Migrations never run automatically: use the image that matches this database, or apply the approved migration with scripts\migrate.ps1.
+sandbox alembic_version: 0003
+api Restarting (1) 6 seconds ago
+db Up 7 minutes (healthy)
+scheduler Restarting (1) 6 seconds ago
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-api-1 Stopped 
+
+=== [2026-11-05 01:10:07] B3b verified pre-migration backup with services stopped ===
+Dumping database to backups\aqt_20261105_011007_pre_migration.dump ...
+Verifying: restoring into scratch database aqt_verify ...
+NOTICE:  database "aqt_verify" does not exist, skipping
+Restore verified: row counts identical.
+Backup OK: E:\aqt-sandbox\backups\aqt_20261105_011007_pre_migration.dump (1545.8 MB, sha256 cb97355ba795041227fe308154307289b048605a3e6780e1ea6e33044993704d)
+
+real	9m5.311s
+user	0m0.015s
+sys	0m0.000s
+exit 0
+sha256 cb97355ba795041227fe308154307289b048605a3e6780e1ea6e33044993704d bytes 1620921080
+tables in manifest 43 rows 19449259 verified True differs []
+
+=== [2026-11-05 01:19:12] B4 migrate.ps1: no approval / no backup / backup without a clean verification (production dump taken while services ran) / valid ===
+Release image: aqt-backend:pr-882e318eec03
+ Container aqtsb-db-1 Running 
+Database schema: 0003; image expects: 0005
+Refused: schema changes need -IHaveApproval, after the migration plan was approved.
+¦ì©ó E:\aqt-sandbox\scripts\migrate.ps1:19 ¦r¤¸:28
++ ... Approval) { throw "Refused: schema changes need -IHaveApproval, after ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Refused: schema...n was approved.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Refused: schema changes need -IHaveApproval, after the migration plan was approved.
+ 
+-> exit code 1
+-> REFUSED
+sandbox alembic_version: 0003
+Release image: aqt-backend:pr-882e318eec03
+ Container aqtsb-db-1 Running 
+Database schema: 0003; image expects: 0005
+Refused: -Backup <verified pre-migration dump> is required.
+¦ì©ó E:\aqt-sandbox\scripts\migrate.ps1:29 ¦r¤¸:21
++ ...  $Backup) { throw "Refused: -Backup <verified pre-migration dump> is  ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Refused: -Backu...p> is required.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Refused: -Backup <verified pre-migration dump> is required.
+ 
+-> exit code 1
+-> REFUSED
+sandbox alembic_version: 0003
+Release image: aqt-backend:pr-882e318eec03
+ Container aqtsb-db-1 Running 
+Database schema: 0003; image expects: 0005
+aqt_20261105_002745_pre_rehearsal2.dump has no verified restore: run scripts\backup.ps1 -Verify.
+¦ì©ó E:\aqt-sandbox\scripts\migrate.ps1:35 ¦r¤¸:36
++ ... store.ok) { throw "$name has no verified restore: run scripts\backup. ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (aqt_20261105_00...up.ps1 -Verify.:String) [], RuntimeException
+    + FullyQualifiedErrorId : aqt_20261105_002745_pre_rehearsal2.dump has no verified restore: run scripts\backup.ps1  
+   -Verify.
+ 
+-> exit code 1
+-> REFUSED
+sandbox alembic_version: 0003
+Release image: aqt-backend:pr-882e318eec03
+ Container aqtsb-db-1 Running 
+Database schema: 0003; image expects: 0005
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-api-1 Stopped 
+ Container aqtsb-db-1 Running 
+ Container aqtsb-db-1 Waiting 
+ Container aqtsb-db-1 Healthy 
+ Container aqtsb-migrate-run-6481333f81e9 Creating 
+ Container aqtsb-migrate-run-6481333f81e9 Created 
+2026-11-05 01:19:28,599 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:19:28,600 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:19:28,601 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:19:28,601 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:19:28,601 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:19:28,602 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:19:28,602 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, PHASE 2: reproducible, append-only backtest records
+INFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, Point-in-time audit of data-quality exclusions; flags for backtests affected by later discoveries
+Migrated. Run the post-migration checks, then scripts\start.ps1.
+
+real	0m7.879s
+user	0m0.000s
+sys	0m0.015s
+exit 0
+sandbox alembic_version: 0005
+
+=== [2026-11-05 01:19:31] B5 downgrade allowed while no audit record exists ===
+ Container aqtsb-api-run-d800ffbee0c7 Creating 
+ Container aqtsb-api-run-d800ffbee0c7 Created 
+2026-11-05 01:19:32,140 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:19:32,141 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:19:32,141 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:19:32,142 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:19:32,142 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:19:32,143 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:19:32,143 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+{
+  "database_version": "0005",
+  "audit_records": {
+    "backtest_runs": 0,
+    "backtest_trades": 0,
+    "backtest_run_invalidations": 0,
+    "post_hoc_quality_issues": 0,
+    "strategy_versions": 0,
+    "strategy_stage_changes": 0
+  },
+  "downgrade_allowed": true,
+  "standard_rollback": "alembic downgrade (no audit record exists)",
+  "downgrade_would_lose": {
+    "0005": [
+      "data_quality_issues.known_at / effective_at / detection_method (when each exclusion took effect)",
+      "backtest_runs.benchmark_comparable",
+      "table backtest_run_invalidations (every NEEDS_RERUN flag)"
+    ],
+    "0004": [
+      "backtest_runs: config, params_hash, data_version, data_version_hash, data_manifest, results_hash, engine_version, started_at, finished_at, parent_run_id, disclaimer, dividend_mode, benchmark_index, benchmark_kind, usable_for_evaluation, evaluation",
+      "backtest_trades: entry_costs, exit_costs, gross_pnl",
+      "append-only triggers of backtest_runs and backtest_trades"
+    ]
+  }
+}
+exit 0
+ Container aqtsb-api-run-3d4f7769b791 Creating 
+ Container aqtsb-api-run-3d4f7769b791 Created 
+2026-11-05 01:19:33,704 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:19:33,705 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:19:33,705 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:19:33,706 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:19:33,706 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:19:33,707 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:19:33,707 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+audit_T1b.json 43 tables 19449258 rows
+ Container aqtsb-api-run-64192cf56ff5 Creating 
+ Container aqtsb-api-run-64192cf56ff5 Created 
+{
+  "tables_compared": 42,
+  "rows_compared": 19449258,
+  "problems": [],
+  "identical": true,
+  "new_tables": [
+    "backtest_run_invalidations"
+  ]
+}
+-> compare exit 0
+Release image: aqt-backend:pr-882e318eec03
+ Container aqtsb-db-1 Running 
+Database schema: 0005; image expects: 0005
+ Container aqtsb-api-run-f9b0bbe560d0 Creating 
+ Container aqtsb-api-run-f9b0bbe560d0 Created 
+2026-11-05 01:19:46,208 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:19:46,209 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:19:46,209 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:19:46,210 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:19:46,210 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:19:46,211 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:19:46,211 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+{
+  "database_version": "0005",
+  "audit_records": {
+    "backtest_runs": 0,
+    "backtest_trades": 0,
+    "backtest_run_invalidations": 0,
+    "post_hoc_quality_issues": 0,
+    "strategy_versions": 0,
+    "strategy_stage_changes": 0
+  },
+  "downgrade_allowed": true,
+  "standard_rollback": "alembic downgrade (no audit record exists)",
+  "downgrade_would_lose": {
+    "0005": [
+      "data_quality_issues.known_at / effective_at / detection_method (when each exclusion took effect)",
+      "backtest_runs.benchmark_comparable",
+      "table backtest_run_invalidations (every NEEDS_RERUN flag)"
+    ],
+    "0004": [
+      "backtest_runs: config, params_hash, data_version, data_version_hash, data_manifest, results_hash, engine_version, started_at, finished_at, parent_run_id, disclaimer, dividend_mode, benchmark_index, benchmark_kind, usable_for_evaluation, evaluation",
+      "backtest_trades: entry_costs, exit_costs, gross_pnl",
+      "append-only triggers of backtest_runs and backtest_trades"
+    ]
+  }
+}
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopped 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-api-run-bdc791a59e41 Creating 
+ Container aqtsb-api-run-bdc791a59e41 Created 
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 0005 -> 0004, Point-in-time audit of data-quality exclusions; flags for backtests affected by later discoveries
+INFO  [alembic.runtime.migration] Running downgrade 0004 -> 0003, PHASE 2: reproducible, append-only backtest records
+Downgraded to 0003. Set AQT_IMAGE to the release image of that schema before starting.
+
+real	0m5.931s
+user	0m0.000s
+sys	0m0.030s
+exit 0
+sandbox alembic_version: 0003
+schema after downgrade IDENTICAL to 0003
+ Container aqtsb-api-run-360d241c5c2d Creating 
+ Container aqtsb-api-run-360d241c5c2d Created 
+2026-11-05 01:19:50,406 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:19:50,407 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:19:50,408 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:19:50,408 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:19:50,409 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:19:50,409 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:19:50,409 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+audit_T2.json 42 tables 19449258 rows
+ Container aqtsb-api-run-76e90a786276 Creating 
+ Container aqtsb-api-run-76e90a786276 Created 
+{
+  "tables_compared": 42,
+  "rows_compared": 19449258,
+  "problems": [],
+  "identical": true,
+  "new_tables": []
+}
+-> compare exit 0
+
+=== [2026-11-05 01:19:59] B6 upgrade again, start with guards on ===
+Release image: aqt-backend:pr-882e318eec03
+ Container aqtsb-db-1 Running 
+Database schema: 0003; image expects: 0005
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-api-1 Stopped 
+ Container aqtsb-db-1 Running 
+ Container aqtsb-db-1 Waiting 
+ Container aqtsb-db-1 Healthy 
+ Container aqtsb-migrate-run-1bba0369e6f6 Creating 
+ Container aqtsb-migrate-run-1bba0369e6f6 Created 
+2026-11-05 01:20:04,831 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:20:04,832 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:20:04,832 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:20:04,833 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:20:04,833 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:20:04,833 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:20:04,834 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0003 -> 0004, PHASE 2: reproducible, append-only backtest records
+INFO  [alembic.runtime.migration] Running upgrade 0004 -> 0005, Point-in-time audit of data-quality exclusions; flags for backtests affected by later discoveries
+Migrated. Run the post-migration checks, then scripts\start.ps1.
+sandbox alembic_version: 0005
+ Container aqtsb-db-1 Running 
+ Container aqtsb-scheduler-1 Starting 
+ Container aqtsb-api-1 Starting 
+ Container aqtsb-scheduler-1 Started 
+ Container aqtsb-api-1 Started 
+    "sources_down":  [
+
+                     ],
+    "realtime_quotes":  {
+                            "available":  false,
+                            "note":  "a?aa?¢Da\u0085¢Da??a3?a??a??a?3a??e!?a?\u0085i??c??a??e3?a??c?oao?a??a?€a\u0085?e??e3?a??i??c??a¡M-a?\u0085a??a??e?2a??c\u0085¡±"
+                        }
+}
+exit 0
+{
+    "status": "ok",
+    "trading_mode": "SIMULATION",
+    "build_commit": "882e318eec034b7cfb49af78971a8da261ae3ea5",
+    "schema": {
+        "database_version": "0005",
+        "build_expects": "0005",
+        "match": true,
+        "build_commit": "882e318eec034b7cfb49af78971a8da261ae3ea5"
+    },
+    "safe_mode": {
+        "on": false
+    },
+    "data_readiness": {
+        "window": "2019-01-01..2026-10-31",
+        "checked_at": "2026-11-03T14:30:29+00:00",
+        "quality_status": "REVIEWED_WITH_EXCLUSIONS",
+        "coverage_complete": true,
+        "technical_backtest_ready": true,
+        "fundamental_backtest_ready": false,
+        "fundamental_not_ready_reason": "618 financial statements lack a verified publication time"
+    },
+    "latest_price_date": "2026-11-04",
+    "hours_since_latest_price_date": 17.336925085555556,
+api Up 2 minutes
+db Up 19 minutes (healthy)
+scheduler Up 2 minutes
+scheduler-1  | 2026-11-05 01:20:11,339 INFO apscheduler.scheduler Added job "job_calendar" to job store "default"
+scheduler-1  | 2026-11-05 01:20:11,340 INFO apscheduler.scheduler Added job "job_heartbeat" to job store "default"
+scheduler-1  | 2026-11-05 01:20:11,340 INFO apscheduler.scheduler Scheduler started
+daily_update|SUCCESS|2026-11-04 22:15:00.05388+08|2026-11-04 22:16:26.821994+08
+daily_update|SUCCESS|2026-11-04 21:07:34.61821+08|2026-11-04 21:09:14.156548+08
+
+=== [2026-11-05 01:22:14] B7 write a formal backtest record: downgrade must now be refused ===
+ Container aqtsb-api-run-812e7773a571 Creating 
+ Container aqtsb-api-run-812e7773a571 Created 
+2026-11-05 01:22:15,914 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:22:15,915 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:22:15,915 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:22:15,916 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:22:15,916 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:22:15,917 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:22:15,917 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+  "rejections": 1,
+  "disclaimer": "ç ”ç©¶ç”¨é€”çš„æ­·å²æ¨¡æ“¬çµæžœã€‚å›žæ¸¬ç¸¾æ•ˆä¸ä»£è¡¨æœªä¾†è¡¨ç¾ï¼Œä¸æ§‹æˆä»»ä½•ç­–ç•¥æœ‰æ•ˆã€å¯ç²åˆ©æˆ–å¯äº¤æ˜“çš„å®£ç¨±ï¼Œäº¦éžæŠ•è³‡å»ºè­°ã€‚Research-only historical simulation; not evidence that any strategy is effective, profitable or tradable.",
+  "saved_to": "/data/reports/backtests/backtest_ew_liquid_baseline_20261105T012228.json"
+}
+exit 0
+ Container aqtsb-api-run-f1ebebb1e64c Creating 
+ Container aqtsb-api-run-f1ebebb1e64c Created 
+2026-11-05 01:22:29,778 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:22:29,842 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:22:29,843 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:22:29,844 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:22:29,845 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:22:29,845 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:22:29,846 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+{
+  "database_version": "0005",
+  "audit_records": {
+    "backtest_runs": 1,
+    "backtest_trades": 38,
+    "backtest_run_invalidations": 0,
+    "post_hoc_quality_issues": 0,
+    "strategy_versions": 1,
+    "strategy_stage_changes": 0
+  },
+  "downgrade_allowed": false,
+  "standard_rollback": "restore the pre-migration backup; downgrade would destroy audit metadata",
+  "downgrade_would_lose": {
+    "0005": [
+
+exit 4
+Release image: aqt-backend:pr-882e318eec03
+ Container aqtsb-db-1 Running 
+Database schema: 0005; image expects: 0005
+ Container aqtsb-api-run-01ac2d2d3e0a Creating 
+ Container aqtsb-api-run-01ac2d2d3e0a Created 
+2026-11-05 01:22:34,174 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:22:34,175 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:22:34,176 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:22:34,176 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:22:34,177 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:22:34,177 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:22:34,178 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+{
+  "database_version": "0005",
+  "audit_records": {
+    "backtest_runs": 1,
+    "backtest_trades": 38,
+    "backtest_run_invalidations": 0,
+    "post_hoc_quality_issues": 0,
+    "strategy_versions": 1,
+    "strategy_stage_changes": 0
+  },
+  "downgrade_allowed": false,
+  "standard_rollback": "restore the pre-migration backup; downgrade would destroy audit metadata",
+  "downgrade_would_lose": {
+    "0005": [
+      "data_quality_issues.known_at / effective_at / detection_method (when each exclusion took effect)",
+      "backtest_runs.benchmark_comparable",
+      "table backtest_run_invalidations (every NEEDS_RERUN flag)"
+    ],
+    "0004": [
+      "backtest_runs: config, params_hash, data_version, data_version_hash, data_manifest, results_hash, engine_version, started_at, finished_at, parent_run_id, disclaimer, dividend_mode, benchmark_index, benchmark_kind, usable_for_evaluation, evaluation",
+      "backtest_trades: entry_costs, exit_costs, gross_pnl",
+      "append-only triggers of backtest_runs and backtest_trades"
+    ]
+  }
+}
+
+Downgrade refused: audit records exist. The standard rollback is restoring the pre-migration backup (scripts\restore.ps
+1).
+¦ì©ó E:\aqt-sandbox\scripts\migrate.ps1:22 ¦r¤¸:32
++ ... DE -ne 0) { throw "Downgrade refused: audit records exist. The standa ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Downgrade refus...s\restore.ps1).:String) [], RuntimeException
+    + FullyQualifiedErrorId : Downgrade refused: audit records exist. The standard rollback is restoring the pre-migra 
+   tion backup (scripts\restore.ps1).
+ 
+-> exit code 1
+-> REFUSED
+sandbox alembic_version: 0005
+backtest_runs: 1
+
+=== [2026-11-05 01:22:35] B8 standard rollback: restore the pre-migration backup with the 0003 release image aqt-backend:main-7a89d6da132b ===
+sandbox AQT_IMAGE=aqt-backend:main-7a89d6da132b
+sha256 verified.
+Stopping app containers...
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-api-1 Stopped 
+Restored aqt_20261105_011007_pre_migration.dump. Database schema: 0003; aqt-backend:main-7a89d6da132b expects: 0003
+Done. api and scheduler stay stopped (-NoStart).
+
+real	3m7.399s
+user	0m0.000s
+sys	0m0.000s
+exit 0
+sandbox alembic_version: 0003
+ Container aqtsb-api-run-97cc876e1973 Creating 
+ Container aqtsb-api-run-97cc876e1973 Created 
+2026-11-05 01:25:44,507 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.schemas
+2026-11-05 01:25:44,508 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.tables
+2026-11-05 01:25:44,508 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.types
+2026-11-05 01:25:44,509 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.constraints
+2026-11-05 01:25:44,509 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.defaults
+2026-11-05 01:25:44,510 INFO alembic.runtime.plugins setup plugin alembic.autogenerate.comments
+2026-11-05 01:25:44,510 INFO alembic.runtime.plugins setup plugin alembic.ext.checkconstraint_byname
+audit_T3.json 42 tables 19449258 rows
+ Container aqtsb-api-run-c3e14358fa81 Creating 
+ Container aqtsb-api-run-c3e14358fa81 Created 
+{
+  "tables_compared": 42,
+  "rows_compared": 19449258,
+  "problems": [],
+  "identical": true,
+  "new_tables": []
+}
+-> compare exit 0
+backtest_runs: 0
+ Container aqtsb-db-1 Running 
+ Container aqtsb-api-1 Recreate 
+ Container aqtsb-scheduler-1 Recreate 
+ Container aqtsb-scheduler-1 Recreated 
+ Container aqtsb-api-1 Recreated 
+ Container aqtsb-scheduler-1 Starting 
+ Container aqtsb-api-1 Starting 
+ Container aqtsb-scheduler-1 Started 
+ Container aqtsb-api-1 Started 
+                     ],
+    "realtime_quotes":  {
+                            "available":  false,
+                            "note":  "a?aa?¢Da\u0085¢Da??a3?a??a??a?3a??e!?a?\u0085i??c??a??e3?a??c?oao?a??a?€a\u0085?e??e3?a??i??c??a¡M-a?\u0085a??a??e?2a??c\u0085¡±"
+                        }
+}
+exit 0
+{
+    "status": "ok",
+    "trading_mode": "SIMULATION",
+    "safe_mode": {
+        "on": false
+    },
+    "data_readiness": {
+        "window": "2019-01-01..2026-10-31",
+        "checked_at": "2026-11-03T14:30:29+00:00",
+        "quality_status": "REVIEWED_WITH_EXCLUSIONS",
+        "coverage_complete": true,
+        "technical_backtest_ready": true,
+        "fundamental_backtest_ready": false,
+        "fundamental_not_ready_reason": "618 financial statements lack a verified publication time"
+    },
+    "latest_price_date": "2026-11-04",
+    "hours_since_latest_price_date": 17.433528546111113,
+    "last_daily_update": {
+        "job_name": "daily_update",
+        "status": "SUCCESS",
+        "finished_at": "2026-11-04T22:16:26.821994+08:00"
+    },
+    "sources_down": [],
+    "realtime_quotes": {
+api Up 32 seconds
+db Up 23 minutes (healthy)
+scheduler Up 33 seconds
+scheduler-1  | 2026-11-05 01:25:59,029 INFO apscheduler.scheduler Added job "job_calendar" to job store "default"
+scheduler-1  | 2026-11-05 01:25:59,029 INFO apscheduler.scheduler Added job "job_heartbeat" to job store "default"
+scheduler-1  | 2026-11-05 01:25:59,029 INFO apscheduler.scheduler Scheduler started
+
+=== [2026-11-05 01:26:31] Z cleanup sandbox ===
+ Container aqtsb-scheduler-1 Stopping 
+ Container aqtsb-api-1 Stopping 
+ Container aqtsb-scheduler-1 Stopped 
+ Container aqtsb-scheduler-1 Removing 
+ Container aqtsb-scheduler-1 Removed 
+ Container aqtsb-api-1 Stopped 
+ Container aqtsb-api-1 Removing 
+ Container aqtsb-api-1 Removed 
+ Container aqtsb-db-1 Stopping 
+ Container aqtsb-db-1 Stopped 
+ Container aqtsb-db-1 Removing 
+ Container aqtsb-db-1 Removed 
+ Network aqtsb_default Removing 
+ Network aqtsb_default Removed 
+aqtsb_pgdata
+
+=== [2026-11-05 01:26:34] R9 production state after (must equal R0) ===
+/aqt-api-1 image=sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 started=2026-11-04T13:07:30.052277428Z restarts=0
+/aqt-scheduler-1 image=sha256:68aa0369952eca0a055938ae2ec2bc689fa68b1d88604ce61432cb824af9a760 started=2026-11-04T13:07:30.062965006Z restarts=0
+/aqt-db-1 image=sha256:5db6dac2ef5dcff512f4f00a009c3c332b9f2f28f24277175bf3e4a3d02ef83a started=2026-11-04T13:07:30.066915011Z restarts=0
+0003
