@@ -175,3 +175,44 @@ def test_readiness_stays_fail_closed_past_the_checked_window(engine):
     _readiness(engine, technical_backtest_ready=False, coverage_complete=False, window="2019-01-01..2026-10-31")
     with session_scope(engine) as s, pytest.raises(DataNotReady):
         check_readiness(s, False, date(2026, 1, 1))
+
+
+def test_deployment_interrupted_job_keeps_backtests_unavailable_until_reconciled(engine, stuck, tmp_path):
+    """Scheduler killed by a deployment -> job left RUNNING -> data complete but not yet reconciled -> unavailable."""
+    job, m = stuck
+    assert _job(engine, job)[0] == "RUNNING"
+    day = m.dates[3]
+    assert reconcile.verify_daily_job(engine, job)["outcome"] == "DATA_COMPLETE"  # complete is not yet reconciled
+
+    def publish():
+        rep = run_integrity_check(engine, m.dates[0], m.dates[4], str(tmp_path), sha_sample=5)
+        rep.update(quotes_by_year=[], secondary_gaps={}, revenue_months=[], unknown_weekdays=[])  # short test window
+        v = _verdict(rep)
+        set_state(engine, "data_readiness", {
+            "technical_backtest_ready": v["technical_backtest_ready"], "coverage_complete": v["coverage"]["complete"],
+            "technical_ready_through": v["technical_ready_through"], "window": rep["window"],
+            "quality_status": "REVIEWED_WITH_EXCLUSIONS", "fundamental_backtest_ready": False})
+
+    publish()
+    with session_scope(engine) as s:
+        assert check_readiness(s, False, m.dates[2])  # days before the stuck one stay usable
+        for end in (day, m.dates[4]):
+            with pytest.raises(DataNotReady):
+                check_readiness(s, False, end)
+    reconcile.record(engine, job, "killed by a deployment", "tester")
+    publish()
+    with session_scope(engine) as s:
+        assert check_readiness(s, False, day) and check_readiness(s, False, m.dates[4])
+
+
+def test_scope_duplicates_and_omissions_are_reported(engine, stuck):
+    job, m = stuck
+    ev = reconcile.verify_daily_job(engine, job)
+    assert ev["method"].startswith("Read-only") and ev["written_scope"]["rows_by_table"]["daily_prices"] > 0
+    assert all(d["payload_duplicate_records"] == 0 and d["stored_duplicate_rows"] == 0 for d in ev["datasets"])
+    with engine.begin() as c:
+        c.execute(text("DELETE FROM valuations WHERE trade_date=:d AND security_id="
+                       "(SELECT min(security_id) FROM valuations WHERE trade_date=:d)"), {"d": m.dates[3]})
+    ev = reconcile.verify_daily_job(engine, job)
+    assert ev["outcome"] == "DATA_INCOMPLETE"
+    assert sum(len(d["in_payload_not_stored"]) for d in ev["datasets"]) == 1

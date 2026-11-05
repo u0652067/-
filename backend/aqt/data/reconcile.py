@@ -23,6 +23,11 @@ SAME_RUN_WINDOW = timedelta(minutes=30)
 TABLES = {"quotes": "daily_prices", "institutional": "institutional_trades", "margin": "margin_trades",
           "valuation": "valuations"}
 NOT_COMPARED = {"code", "name", "market", "trade_date", "source", "note"}
+METHOD = ("Read-only transaction. For each of the 8 daily datasets: take the payload this job stored, check its "
+          "sha256, parse it with the production parser and compare every record field with the stored row. Report "
+          "rows in the payload but not stored, stored but not in the payload, and duplicates on either side. List "
+          "what the job wrote by raw_payload_id, then check indicators, quality issues and later runs. Reproduce: "
+          "python -m aqt.cli reconcile-job --job-id <id> --out <file>")
 
 
 class NotReconcilable(RuntimeError):
@@ -51,11 +56,13 @@ def _dataset(c: Connection, market: str, dataset: str, d: date, job_start: datet
     sha_ok = hashlib.sha256(body).hexdigest() == raw["sha256"]
     previous = c.execute(text("SELECT sha256 FROM raw_payloads WHERE dataset=:t AND data_date=:d AND fetched_at<:a "
                               "ORDER BY fetched_at DESC LIMIT 1"), {"t": tag, "d": d, "a": raw["fetched_at"]}).scalar()
-    recs = {r.code: asdict(r) for r in DAILY[(market, dataset)][2](json.loads(body), d).records}
+    parsed = DAILY[(market, dataset)][2](json.loads(body), d).records
+    recs = {r.code: asdict(r) for r in parsed}
     table = TABLES[dataset]
-    rows = {r["code"]: dict(r) for r in c.execute(text(
-        f"SELECT s.code, t.* FROM {table} t JOIN securities s ON s.id=t.security_id "
-        "WHERE t.trade_date=:d AND s.market=:m"), {"d": d, "m": market}).mappings()}
+    stored = c.execute(text(f"SELECT s.code, t.* FROM {table} t JOIN securities s ON s.id=t.security_id "
+                            "WHERE t.trade_date=:d AND s.market=:m"), {"d": d, "m": market}).mappings().all()
+    rows = {r["code"]: dict(r) for r in stored}
+    missing, extra = sorted(set(recs) - set(rows)), sorted(set(rows) - set(recs))
     from_payload = sum(1 for r in rows.values() if r["raw_payload_id"] == raw["id"])
     mismatched = []
     for code, rec in recs.items():
@@ -70,10 +77,23 @@ def _dataset(c: Connection, market: str, dataset: str, d: date, job_start: datet
                parse_status=raw["parse_status"], sha256=raw["sha256"], sha256_verified=sha_ok,
                same_as_previous_payload=previous == raw["sha256"], payload_records=len(recs), stored_rows=len(rows),
                stored_rows_from_this_payload=from_payload, value_mismatches=len(mismatched),
-               mismatch_sample=mismatched[:10])
+               mismatch_sample=mismatched[:10], payload_duplicate_records=len(parsed) - len(recs),
+               stored_duplicate_rows=len(stored) - len(rows), in_payload_not_stored=missing[:10],
+               stored_not_in_payload=extra[:10])
     out["ok"] = bool(recs) and sha_ok and raw["http_status"] == 200 and raw["parse_status"] == "OK" \
-        and from_payload == len(recs) == len(rows) and not mismatched
+        and from_payload == len(recs) == len(rows) and not mismatched and not missing and not extra \
+        and len(parsed) == len(recs) and len(stored) == len(rows)
     return out
+
+
+def _written_scope(c: Connection, start: datetime, last_fetch: datetime) -> dict:
+    """Rows in any table that point at a payload this job fetched."""
+    ids = [r[0] for r in c.execute(text("SELECT id FROM raw_payloads WHERE fetched_at BETWEEN :a AND :b"),
+                                   {"a": start, "b": last_fetch})]
+    tables = [r[0] for r in c.execute(text("SELECT table_name FROM information_schema.columns WHERE "
+                                           "table_schema='public' AND column_name='raw_payload_id' ORDER BY 1"))]
+    return {"payload_ids": ids, "rows_by_table": {t: c.execute(text(
+        f"SELECT count(*) FROM {t} WHERE raw_payload_id = ANY(:i)"), {"i": ids}).scalar() for t in tables}}
 
 
 def verify_daily_job(engine: Engine, job_id: int, now: datetime | None = None) -> dict:
@@ -98,6 +118,8 @@ def verify_daily_job(engine: Engine, job_id: int, now: datetime | None = None) -
         earlier_success = [r["id"] for r in same_day if r["status"] == "SUCCESS" and r["id"] != job_id]
         n = lambda q: c.execute(text(q), {"d": d}).scalar()  # noqa: E731
         priced = n("SELECT count(*) FROM daily_prices WHERE trade_date=:d AND close IS NOT NULL")
+        fetched = [x["fetched_at"] for x in datasets if "fetched_at" in x]
+        scope = _written_scope(c, job["started_at"], max(fetched)) if fetched else {}
         steps = {
             "priced_rows": priced,
             "indicator_rows": n("SELECT count(*) FROM technical_indicators WHERE trade_date=:d"),
@@ -105,6 +127,8 @@ def verify_daily_job(engine: Engine, job_id: int, now: datetime | None = None) -
             "quality_issues": n("SELECT count(*) FROM data_quality_issues WHERE trade_date=:d"),
             "quality_issues_unclassified": n("SELECT count(*) FROM data_quality_issues WHERE trade_date=:d "
                                              "AND classification IS NULL"),
+            "quality_issue_duplicates": n("SELECT count(*) - count(DISTINCT (check_name, security_id)) "
+                                          "FROM data_quality_issues WHERE trade_date=:d"),
             "next_trading_day_success": n("SELECT count(*) FROM job_runs WHERE job_name='daily_update' "
                                           "AND status='SUCCESS' AND (params->>'date')::date > :d"),
         }
@@ -115,7 +139,7 @@ def verify_daily_job(engine: Engine, job_id: int, now: datetime | None = None) -
               "prices_unchanged_since_that_success": prices_unchanged,
               "indicators_exist": steps["indicator_rows"] > 0,
               "quality_issues_classified": steps["quality_issues_unclassified"] == 0}
-    return {"job_run_id": job_id, "job_status_in_job_runs": job["status"], "job_result_in_job_runs": job["result"],
+    return {"method": METHOD, "written_scope": scope, "job_run_id": job_id, "job_status_in_job_runs": job["status"], "job_result_in_job_runs": job["result"],
             "data_date": str(d), "started_at": str(job["started_at"]), "verified_at": str(now),
             "same_day_jobs": same_day, "datasets": datasets, "downstream": steps, "checks": checks,
             "outcome": "DATA_COMPLETE" if all(checks.values()) else "DATA_INCOMPLETE"}

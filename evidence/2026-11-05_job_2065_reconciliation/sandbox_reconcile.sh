@@ -17,14 +17,6 @@ PW=$(python -I -c 'import secrets;print(secrets.token_hex(16))')
 sed "s/change-me/$PW/; s/^AQT_DB_PORT=.*/AQT_DB_PORT=5434/; s/^AQT_IMAGE=.*/AQT_IMAGE=$PRI/" .env.example > "$SB/.env"
 cd "$SB"; docker volume create aqtsb_pgdata; docker compose up -d db; sleep 15
 step "R1 restore production copy"; docker compose exec -T db pg_restore -U aqt -d aqt --no-owner "/backups/$NAME"; sbsql "select version_num from alembic_version"
-step "R2 export research records for review package"
-docker compose exec -T db createdb -U aqt aqt_recs
-docker compose exec -T db pg_restore -U aqt -d aqt_recs --no-owner "/backups/$RECS" 2>&1 | tail -2
-docker compose exec -T db psql -U aqt -d aqt_recs -At -c "select coalesce(json_agg(r order by id),'[]') from (select id, strategy_version_id, kind, period_start, period_end, universe_rule, cost_model, config, params_hash, data_version, data_version_hash, data_snapshot_at, results_hash, engine_version, parent_run_id, dividend_mode, benchmark_index, benchmark_kind, benchmark_comparable, usable_for_evaluation, evaluation, metrics, status, started_at, finished_at from backtest_runs) r" > "$SB/data/reports/research_backtest_runs.json"
-docker compose exec -T db psql -U aqt -d aqt_recs -At -c "select coalesce(json_agg(r order by id),'[]') from strategy_versions r" > "$SB/data/reports/research_strategy_versions.json"
-docker compose exec -T db psql -U aqt -d aqt_recs -At -c "select coalesce(json_agg(r order by id),'[]') from strategy_stage_changes r" > "$SB/data/reports/research_stage_changes.json"
-docker compose exec -T db psql -U aqt -d aqt_recs -At -c "select coalesce(json_agg(r order by id),'[]') from factor_studies r" > "$SB/data/reports/research_factor_studies.json"
-ls -la "$SB/data/reports/"
 step "R3 migrate the copy to 0005a"
 cli init-db --apply-migrations 2>&1 | grep -v plugins; sbsql "select version_num from alembic_version"
 echo "job 2065 before: $(sbsql "select id,status,started_at,finished_at,result::text,error from job_runs where id=2065")"
@@ -47,7 +39,6 @@ docker compose exec -T db psql -U aqt -d aqt -c "update job_reconciliations set 
 docker compose exec -T db psql -U aqt -d aqt -c "delete from job_reconciliations" 2>&1 | tail -2
 step "R9 rollback-check counts it"
 cli rollback-check 2>&1 | grep -E 'job_reconciliations"|downgrade_allowed'
-cp "$SB"/data/reports/research_*.json "$REPO/evidence/2026-11-05_phase2_research/"
 step "Z cleanup"
 docker compose down; docker volume rm aqtsb_pgdata; cd "$REPO"; rm -rf "$SB"
 step "production after"; docker inspect aqt-api-1 aqt-scheduler-1 --format '{{.Name}} {{.Image}} {{.State.StartedAt}} {{.RestartCount}}'

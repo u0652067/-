@@ -143,8 +143,8 @@ def main(argv=None) -> None:
         if args.out:
             with open(args.out, "w", encoding="utf-8") as fh:
                 json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
-        print(json.dumps({k: out[k] for k in ("job_run_id", "data_date", "checks", "outcome")}, ensure_ascii=False,
-                         indent=2))
+        print(json.dumps({k: out[k] for k in ("job_run_id", "data_date", "written_scope", "checks", "outcome")},
+                         ensure_ascii=False, indent=2, default=str))
         return
     if args.cmd in ("schema-status", "rollback-check", "table-audit"):
         from aqt import schema_guard, table_audit
