@@ -25,8 +25,10 @@ AUDIT_RECORDS = (
     ("post_hoc_quality_issues", "data_quality_issues", "detection_method <> 'AUTO_RULE'"),
     ("strategy_versions", "strategy_versions", None),
     ("strategy_stage_changes", "strategy_stage_changes", None),
+    ("job_reconciliations", "job_reconciliations", None),
 )
 DOWNGRADE_LOSES = {
+    "0005a": ["table job_reconciliations (the evidence and reason for every stuck job)"],
     "0005": ["data_quality_issues.known_at / effective_at / detection_method (when each exclusion took effect)",
              "backtest_runs.benchmark_comparable",
              "table backtest_run_invalidations (every NEEDS_RERUN flag)"],

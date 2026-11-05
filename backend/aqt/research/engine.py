@@ -160,15 +160,22 @@ class DataNotReady(RuntimeError):
     """Readiness missing, not explicitly true, or quality not reviewed: the engine refuses to run."""
 
 
-def check_readiness(session: Session, allow_fundamentals: bool = False) -> dict:
+def check_readiness(session: Session, allow_fundamentals: bool = False, end: date | None = None) -> dict:
+    """`end` is the last day the backtest reads. A later check that finds a problem on some day says nothing
+    about data before it: a window ending by `technical_ready_through` stays usable, anything later does not."""
     r = get_state_safe(session)
     if not r:
         raise DataNotReady("system_state.data_readiness is missing: run integrity-check first")
     problems = []
-    if r.get("technical_backtest_ready") is not True:
+    checked_to = str(r.get("window") or "").rpartition("..")[2] or None
+    through = r.get("technical_ready_through")
+    if r.get("technical_backtest_ready") is True and r.get("coverage_complete") is True:
+        if end is not None and (checked_to is None or str(end) > checked_to):
+            problems.append(f"backtest ends {end}, after the checked window (to {checked_to})")
+    elif end is None or not isinstance(through, str) or str(end) > through:
         problems.append(f"technical_backtest_ready={r.get('technical_backtest_ready')!r}")
-    if r.get("coverage_complete") is not True:
         problems.append(f"coverage_complete={r.get('coverage_complete')!r}")
+        problems.append(f"technical_ready_through={through!r}")
     if r.get("quality_status") not in ACCEPTED_QUALITY:
         problems.append(f"quality_status={r.get('quality_status')!r}")
     if problems:
@@ -181,7 +188,7 @@ def check_readiness(session: Session, allow_fundamentals: bool = False) -> dict:
 class Backtester:
     def __init__(self, session: Session, strategy: Strategy, config: BacktestConfig,
                  initial_state: PortfolioState | None = None):
-        self.readiness = check_readiness(session, config.allow_fundamentals)
+        self.readiness = check_readiness(session, config.allow_fundamentals, config.end)
         self.s, self.strategy, self.cfg = session, strategy, config
         self.cm = config.cost_model
         st = deepcopy(initial_state) if initial_state else PortfolioState(Decimal(str(config.initial_cash)))

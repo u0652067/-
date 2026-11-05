@@ -11,7 +11,11 @@
 - [ ] 使用者審查並合併本 PR
 - [ ] 合併後建立含防護的 main 映像，於沙箱重跑防護步驟
 - [ ] 使用者授權後才套用 0004／0005（`evidence/MIGRATION_PLAN_0004_0005.md`）
-- [ ] 重跑 2026-11-02 的 `update-daily`，清掉殘留的 RUNNING 工作紀錄（未授權前不動正式庫）
+- [x] 查明 job 2065 實際結果：DATA_COMPLETE（`evidence/2026-11-05_job_2065_reconciliation/`）
+- [x] 暫行紀錄：`reconciliation_ledger.jsonl`（git 內只能新增，不會讓 integrity-check 放行）
+- [ ] 核准 0005a 後寫入 job 2065 的 reconciliation 事件（正式庫目前尚無此紀錄）
+- [ ] `save_issues` 每次重跑都新增相同品質問題（全庫 63 筆重複），另案處理
+- [ ] PR #8 的 0006 改接在 0005a 之後
 
 ## PHASE 1 條件式驗收 — 狀態說明
 「條件式」= 程式與部署流程完成、真實來源在本機（台灣家用 IP）驗證可用，但下列資料缺口尚未補齊或尚無官方來源。缺口補齊並經使用者驗收前，**不得進入 PHASE 2**。

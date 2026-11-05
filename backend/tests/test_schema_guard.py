@@ -56,7 +56,7 @@ def test_init_db_needs_the_explicit_flag(engine):
 
 def test_rollback_is_allowed_only_before_any_audit_record(engine):
     r = schema_guard.rollback_check(engine)
-    assert r["downgrade_allowed"] is True and set(r["downgrade_would_lose"]) == {"0004", "0005"}
+    assert r["downgrade_allowed"] is True and set(r["downgrade_would_lose"]) == {"0004", "0005", "0005a"}
     assert any("backtest_run_invalidations" in x for x in r["downgrade_would_lose"]["0005"])
     with session_scope(engine) as s:
         s.add(DataQualityIssue(check_name="manual_review", severity="ERROR", dataset="daily_prices", detail={},
