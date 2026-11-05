@@ -45,7 +45,7 @@
 | API 在 0005 啟動 | main `cbd07ba` | `/api/health` status ok，`realtime_quotes` 維持不可用 | — |
 | scheduler 在 0005 啟動＋補抓 | main `cbd07ba` | 刪除沙箱最後 3 筆 `daily_update` 後啟動，補抓真實官方資料 SUCCESS（79 秒），排程器 6 個工作註冊完成，運行 7 分鐘無重啟 | 79 秒 |
 | `update-daily --date 2026-11-04` | main `cbd07ba` | exit 0 | 78 秒 |
-| `integrity-check` | main `cbd07ba` | 執行成功，品質 `REVIEWED_WITH_EXCLUSIONS`，未分類 0；覆蓋率有 1 個缺口，見第 7 節 | 8 秒 |
+| `integrity-check` | main `cbd07ba` | 執行成功，品質 `REVIEWED_WITH_EXCLUSIONS`，未分類 0；覆蓋率有 1 個缺口（殘留工作），見第 7 節 | 8 秒 |
 | `restore.ps1` 用 0005 映像 | PR | 還原完成，拒絕啟動服務，版本 0003 | — |
 | `start.ps1` 版本不符 | PR | 拒絕，沒有啟動服務，版本 0003 | — |
 | 一般 `docker compose up` | PR | api、scheduler 報錯退出並重試，版本維持 0003，沒有 migrate | — |
@@ -145,7 +145,33 @@ docker compose run --rm --no-deps api python -m aqt.cli table-compare /data/repo
 downgrade 不刪回測紀錄列，但留下的列已無法重現、無法驗證、也失去不可竄改保護。這就是 6.2 禁止 downgrade 的原因。
 
 ## 7. 核准前要知道的事
-1. **一筆舊的未完成工作紀錄。** 正式庫 `job_runs` 有一筆 2026-11-02 22:15 的 `daily_update` 永遠停在 `RUNNING`，應該是當時 Docker Desktop 被關閉造成。那天 17:45 的工作已成功，行情 2,407、融資券 2,224、法人 2,227 筆都在，所以資料沒有缺。但 `integrity-check` 只看最新一筆，截止日含 11-02 以後就回報 1 個缺口，`technical_backtest_ready=false`，正式庫目前的 readiness 截止在 10-31，不受影響。這不是 migration 造成的，本 PR 不處理。之後要延長回測視窗，需要用 `update-daily --date 2026-11-02` 重跑一次（冪等）。
+1. **2026-11-02 殘留 RUNNING 工作（`job_runs.id=2065`）**
+
+   **更正**：先前本文件寫「應該是 Docker Desktop 被關閉」，這是錯的。實際原因是我在 2026-11-02 22:15:34（台北）為了部署缺口修正執行 `start.ps1`，替換了 scheduler 容器；該工作 22:15:00 開始，正在執行中。scheduler 日誌顯示 22:15:50 重新啟動。
+
+   **查核結果**（PR #9 的 `reconcile-job`，對正式庫唯讀執行，`evidence/2026-11-05_job_2065_reconciliation/verify_job_2065_production_readonly.json`）：
+   - 工作自己的 8 份原始回應都在，HTTP 200、sha256 相符、解析 OK。
+   - 8 組資料逐列比對，共 9,840 列：回應筆數 = 資料庫筆數 = 來自這份回應的列數，數值差異 0。
+   - 融資券在 17:45 還是空的，由這次工作寫入：上市 1,305、上櫃 919 列。法人也是這次的修訂版。
+   - 行情與本益比回應與 17:45 成功工作完全相同，所以 17:45 算出的 2,353 筆技術指標仍然正確。
+   - 品質問題 10 筆，未分類 0。工作在寫完品質問題後被中斷，沒執行到的只有重算指標、股票池與安全模式檢查；前兩者輸入沒變，隔日工作已成功。
+   - 結論：`DATA_COMPLETE`。
+
+   **處理方式**（PR #9，待審）：
+   - 不修改 `job_runs`，第 2065 列永遠維持 RUNNING。
+   - 新增只能新增的 `job_reconciliations`（migration `0005a`），記錄結論、理由、證據、證據雜湊、時間與執行者。`integrity-check` 只有在**該工作**有 `DATA_COMPLETE` 紀錄時才放行；`DATA_INCOMPLETE`、或同一天又有新的殘留工作，都仍視為缺口。
+   - **截止日邏輯**：新增 `technical_ready_through`。回測的結束日不晚於這個日期就可以跑，所以把檢查截止日往後移，不會取消較早視窗的資格；結束日晚於它一律拒絕。同時補上原本的漏洞：回測結束日晚於已檢查視窗時，現在也會拒絕。
+
+   **沙箱驗證**（完整複本，`sandbox_reconcile_log.txt`）：紀錄前 `technical_ready_through=2026-11-01`，結束於 10-30 的回測可跑，結束於 11-03 的回測被拒絕。紀錄後 `technical_backtest_ready=true`，`job_runs` 第 2065 列完全不變，UPDATE、DELETE 都被觸發器拒絕。
+
+   **尚未完成**：`0005a` 需要 migration，你尚未授權，所以**正式庫還沒有這筆稽核事件**，正式庫的 `job_runs` 與 readiness 也都沒有動。核准 PR #9 與 migration 後，用以下指令寫入，寫入時會重新驗證一次：
+   ```powershell
+   docker compose run --rm --no-deps api python -m aqt.cli reconcile-job --job-id 2065 --record --reason "<理由>" --by "<執行者>"
+   ```
+   若核准 PR #9，第 4 節的目標版本會由 `0005` 變成 `0005a`，第 5 節的預期版本與觸發器數（30 個）也跟著改；PR #8 的 `0006` 要改接在 `0005a` 之後。
+
+   **避免再發生**：部署與 `start.ps1` 不得在 17:45、19:30、22:15、07:40 前後執行（第 3 節的時間窗本來就排除）。這次是我違反了這個原則。
+
 2. **`effective_at` 回填值是規則推定**（各交易日 17:45），實際寫入時間保留在 `created_at`。PR #5 已通過，我視為接受。
 3. **`aqt-backend:prod-0003` 已由 `aqt-backend:main-7a89d6da132b` 取代。** 內容同為 main `7a89d6d`，舊標籤不再使用。
 
