@@ -4,8 +4,10 @@
 - 新增 `job_reconciliations`（migration 0005a，只能新增，尚未套用到正式庫）與 `reconcile-job`。不修改 `job_runs`。
 - `integrity-check` 只有在該工作有 `DATA_COMPLETE` 紀錄時才放行。
 - 新增 `technical_ready_through`；回測依結束日判斷資格，結束日晚於已檢查視窗時拒絕。
-- 正式庫唯讀查核：job 2065 的 8 組資料、9,840 列與原始回應完全相符，結論 DATA_COMPLETE。殘留原因是 2026-11-02 22:15:34 的 `start.ps1` 部署，更正先前的 Docker Desktop 說法。
-- 測試 163 passed。
+- 正式庫唯讀查核：job 2065 的 8 組資料、8,838 列與原始回應完全相符，無遺漏、無重複，結論 DATA_COMPLETE。先前寫的 9,840 列是算錯，已更正。殘留原因是 2026-11-02 22:15:34 的 `start.ps1` 部署，更正先前的 Docker Desktop 說法。
+- 查核輸出實際寫入範圍、重複與遺漏、查核方法；`reconciliation_ledger.jsonl` 是 migration 授權前的暫行紀錄。
+- 新增部署中斷、殘留 RUNNING、未對帳時回測不可用的回歸測試。
+- 測試 165 passed。
 
 ## [0.3.3] — 2026-11-05 — 部署安全修正（分支 `claude/deploy-safety`，待審）
 - PR #6 已合併，main `cbd07ba`。正式庫維持 0003，正式容器未重啟或重建。

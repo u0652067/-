@@ -13,7 +13,7 @@ cd backend && python -m pytest -q        # 全部
 python -m pytest -q tests/test_pipeline.py -k safe_mode
 ```
 
-## 殘留工作對帳（2026-11-05，`test_reconciliation.py` 10 項；全套 163 passed）
+## 殘留工作對帳（2026-11-05，`test_reconciliation.py` 12 項；全套 165 passed）
 | 測試 | 驗證 |
 |---|---|
 | 程序被砍後工作維持 RUNNING，擋住該窗；紀錄後放行，`job_runs` 列不變 | 不偽裝結案 |
@@ -24,6 +24,8 @@ python -m pytest -q tests/test_pipeline.py -k safe_mode
 | 已對帳的日期又出現新殘留工作 → 仍是缺口 | 只認該工作 |
 | `technical_ready_through` 停在第一個問題日之前；其他缺口時為 None | 截止日邏輯 |
 | 檢查截止日往後移，不取消較早視窗；超過已檢查視窗拒絕（回歸） | fail closed |
+| 排程遭部署中斷 → 殘留 RUNNING → 資料完整但未對帳：含該日的回測不可用，紀錄後才可用 | 端到端 |
+| 輸出寫入範圍、重複、遺漏；少一列即 DATA_INCOMPLETE | 查核內容 |
 
 ## 部署安全修正（2026-11-05，`test_schema_guard.py` 15 項；全套 153 passed）
 | 測試 | 驗證 |
