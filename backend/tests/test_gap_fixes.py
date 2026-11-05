@@ -269,7 +269,7 @@ def test_integrity_reports_coverage_and_quality_separately(engine, fetcher, synt
     rep = run_integrity_check(engine, m.dates[0], m.dates[9], str(tmp_path), sha_sample=10)
     v = rep["verdict"]
     assert set(v) == {"coverage", "quality", "technical_backtest_ready", "fundamental_backtest_ready",
-                      "fundamental_not_ready_reason"} and "complete" not in v and "backtest_ready" not in v
+                      "fundamental_not_ready_reason", "technical_ready_through"} and "complete" not in v and "backtest_ready" not in v
     assert v["quality"]["status"] == "UNREVIEWED" and v["quality"]["unclassified"] >= 1
     assert v["technical_backtest_ready"] is False and v["fundamental_backtest_ready"] is False
     quality_review.classify_move_issues(engine, None)

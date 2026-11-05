@@ -58,6 +58,12 @@ def main(argv=None) -> None:
     ta = sub.add_parser("table-audit", help="row count + content hash of every table")
     ta.add_argument("--out", required=True)
     ta.add_argument("--columns-from", help="earlier audit: hash the columns it listed")
+    rj = sub.add_parser("reconcile-job", help="verify a stuck daily_update; --record appends the audit event")
+    rj.add_argument("--job-id", type=int, required=True)
+    rj.add_argument("--out", help="write the evidence JSON here")
+    rj.add_argument("--record", action="store_true", help="append to job_reconciliations (needs the schema)")
+    rj.add_argument("--reason", default="")
+    rj.add_argument("--by", default="")
     tc = sub.add_parser("table-compare", help="compare two table-audit files")
     tc.add_argument("before")
     tc.add_argument("after")
@@ -130,6 +136,16 @@ def main(argv=None) -> None:
         out = main_compare(args.before, args.after)
         print(json.dumps(out, ensure_ascii=False, indent=2))
         raise SystemExit(0 if out["identical"] else 1)
+    if args.cmd == "reconcile-job" and not args.record:  # read-only: works on any schema
+        from aqt.data.reconcile import verify_daily_job
+        from aqt.db import get_engine
+        out = verify_daily_job(get_engine(), args.job_id)
+        if args.out:
+            with open(args.out, "w", encoding="utf-8") as fh:
+                json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
+        print(json.dumps({k: out[k] for k in ("job_run_id", "data_date", "checks", "outcome")}, ensure_ascii=False,
+                         indent=2))
+        return
     if args.cmd in ("schema-status", "rollback-check", "table-audit"):
         from aqt import schema_guard, table_audit
         from aqt.db import get_engine
@@ -238,6 +254,9 @@ def main(argv=None) -> None:
             with open(path, "w", encoding="utf-8") as fh:
                 json.dump(out, fh, ensure_ascii=False, indent=1, default=str)
             out["saved_to"] = path
+    elif args.cmd == "reconcile-job":
+        from aqt.data.reconcile import record
+        out = record(engine, args.job_id, args.reason, args.by)
     elif args.cmd == "integrity-check":
         from aqt.data.integrity import run_integrity_check
         out = run_integrity_check(engine, args.start, args.end, args.out)

@@ -28,7 +28,7 @@ from aqt.research.strategies import CashBaseline, EqualWeightLiquid, MaTrendMome
 NO_SLIP = CostModel(slippage_tiers=((0, 0),))
 START = date(2024, 1, 1)
 READY = {"technical_backtest_ready": True, "fundamental_backtest_ready": False, "coverage_complete": True,
-         "quality_status": "REVIEWED_WITH_EXCLUSIONS"}
+         "quality_status": "REVIEWED_WITH_EXCLUSIONS", "window": "2019-01-01..2099-12-31"}
 
 
 @pytest.fixture(autouse=True)

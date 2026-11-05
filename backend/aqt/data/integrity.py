@@ -13,9 +13,9 @@ import gzip
 import hashlib
 import json
 import os
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
 from aqt.config import get_settings
@@ -110,11 +110,23 @@ def run_integrity_check(engine: Engine, start: date = date(2019, 1, 1), end: dat
                                         "latest_data_date::text, left(last_error,160) last_error "
                                         "FROM data_source_status ORDER BY 1,2")
         rep["rerunnable_days"] = _rows(c, """
-          SELECT DISTINCT ON (params->>'date') params->>'date' AS day, status,
+          SELECT DISTINCT ON (params->>'date') params->>'date' AS day, status, id AS job_run_id,
                  left(coalesce(result->>'warnings', error, ''), 200) AS why
           FROM job_runs WHERE job_name='daily_update' AND params->>'date' BETWEEN :s AND :e
           ORDER BY params->>'date', started_at DESC""", s=str(start), e=str(end))
         rep["rerunnable_days"] = [r for r in rep["rerunnable_days"] if r["status"] in ("FAILED", "PARTIAL", "RUNNING")]
+        # a stuck job clears only through an append-only reconciliation of that exact job; job_runs is never edited
+        rep["reconciled_days"] = []
+        if inspect(engine).has_table("job_reconciliations"):
+            done = {r["job_run_id"]: r for r in _rows(c, """
+              SELECT DISTINCT ON (job_run_id) job_run_id, outcome, id AS reconciliation_id, executed_by,
+                     reconciled_at::text AS reconciled_at
+              FROM job_reconciliations ORDER BY job_run_id, id DESC""")}
+            rep["reconciled_days"] = [r | done[r["job_run_id"]] for r in rep["rerunnable_days"]
+                                      if r["status"] == "RUNNING" and r["job_run_id"] in done
+                                      and done[r["job_run_id"]]["outcome"] == "DATA_COMPLETE"]
+            cleared = {r["job_run_id"] for r in rep["reconciled_days"]}
+            rep["rerunnable_days"] = [r for r in rep["rerunnable_days"] if r["job_run_id"] not in cleared]
         rep["safe_mode"] = c.execute(text("SELECT value FROM system_state WHERE key='safe_mode'")).scalar()
         rep["corporate_actions_by_type"] = _rows(c, "SELECT s.market, a.action_type, count(*) n FROM corporate_actions a "
                                                     "JOIN securities s ON s.id=a.security_id GROUP BY 1,2 ORDER BY 1,2")
@@ -135,6 +147,7 @@ def run_integrity_check(engine: Engine, start: date = date(2019, 1, 1), end: dat
         "technical_backtest_ready": v["technical_backtest_ready"],
         "fundamental_backtest_ready": v["fundamental_backtest_ready"],
         "fundamental_not_ready_reason": v["fundamental_not_ready_reason"],
+        "technical_ready_through": v["technical_ready_through"],
         "coverage_complete": v["coverage"]["complete"], "quality_status": v["quality"]["status"],
         "window": rep["window"], "checked_at": rep["generated_at"]})
     out_dir = out_dir or (os.path.join(get_settings().report_dir, "integrity") if get_settings().report_dir else None)
@@ -187,8 +200,19 @@ def _verdict(rep: dict) -> dict:
                      "(never returned by fundamentals.latest_statements_as_of)")
     status = "CLEAN" if not (errors or unclassified or blocking) else (
         "UNREVIEWED" if unclassified else "REVIEWED_WITH_EXCLUSIONS")
+    # Last day this report vouches for. Problems on a dated day leave everything before that day usable, so
+    # moving the check's end date forward can never take readiness away from an earlier backtest window.
+    ready_through = None
+    undated = [g for g in gaps if "FAILED/PARTIAL" not in g]
+    first, _, last = str(rep.get("window") or "").partition("..")
+    if last and not undated and unclassified == 0:
+        days = sorted(r["day"] for r in rep["rerunnable_days"])
+        ready_through = str(date.fromisoformat(days[0]) - timedelta(days=1)) if days else last
+        if ready_through < first:
+            ready_through = None
     return {
         "coverage": {"complete": not gaps, "gaps": gaps},
+        "technical_ready_through": ready_through,
         "quality": {"status": status, "errors": errors, "unclassified": unclassified,
                     "blocking_backtest": blocking, "notes": notes},
         # Two separate flags so "ready" for prices never reads as "ready" for fundamentals.

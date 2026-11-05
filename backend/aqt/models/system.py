@@ -1,7 +1,7 @@
 """Operational tables: job log, errors, notifications, persisted system state."""
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Index, String, Text
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -19,6 +19,22 @@ class JobRun(Base):
     result: Mapped[dict] = mapped_column(JSONB, default=dict)
     error: Mapped[str | None] = mapped_column(Text)
     __table_args__ = (Index("ix_job_runs_name_started", "job_name", "started_at"),)
+
+
+class JobReconciliation(Base):
+    """What the evidence shows about a job that never reported an end state. job_runs stays as it was."""
+    __tablename__ = "job_reconciliations"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    job_run_id: Mapped[int] = mapped_column(ForeignKey("job_runs.id"), nullable=False)
+    outcome: Mapped[str] = mapped_column(String(24), nullable=False)  # DATA_COMPLETE|DATA_INCOMPLETE
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    evidence: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    evidence_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    executed_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reconciled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+    __table_args__ = (CheckConstraint("outcome IN ('DATA_COMPLETE', 'DATA_INCOMPLETE')",
+                                      name="ck_job_reconciliations_outcome"),
+                      Index("ix_job_reconciliations_job", "job_run_id"))
 
 
 class SystemLog(Base, TimestampMixin):
